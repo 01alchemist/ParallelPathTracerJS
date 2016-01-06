@@ -18,19 +18,17 @@ System.register(["./MathUtils", "./Vec3f"], function(exports_1) {
                     this.z = z == undefined ? 0 : z;
                 }
                 Quaternion.prototype.set = function (w, x, y, z) {
-                    var q = this._isThis(w) ? w : null;
-                    if (q) {
-                        this.w = q.w;
-                        this.x = q.x;
-                        this.y = q.y;
-                        this.z = q.z;
-                    }
-                    else {
-                        this.w = w;
-                        this.x = x;
-                        this.y = y;
-                        this.z = z;
-                    }
+                    this.w = w == undefined ? 0 : w;
+                    this.x = x == undefined ? 0 : x;
+                    this.y = y == undefined ? 0 : y;
+                    this.z = z == undefined ? 0 : z;
+                    return this;
+                };
+                Quaternion.prototype.setFromQuaternion = function (q) {
+                    this.w = q.w;
+                    this.x = q.x;
+                    this.y = q.y;
+                    this.z = q.z;
                     return this;
                 };
                 Quaternion.prototype._isThis = function (value) {
@@ -55,18 +53,12 @@ System.register(["./MathUtils", "./Vec3f"], function(exports_1) {
                     this.z = z * Math.sin(theta / 2.0);
                     return this;
                 };
-                Quaternion.prototype.mul = function (value) {
+                Quaternion.prototype.mul = function (q) {
                     var r = new Quaternion();
-                    if (this._isThis(value)) {
-                        var q = value;
-                        r.w = this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z;
-                        r.x = this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y;
-                        r.y = this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x;
-                        r.z = this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w;
-                    }
-                    else if (value instanceof Vec3f_1.Vec3f || value instanceof Object) {
-                        r = this.mulVector(value);
-                    }
+                    r.w = this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z;
+                    r.x = this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y;
+                    r.y = this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x;
+                    r.z = this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w;
                     return r;
                 };
                 Quaternion.prototype.mulVector = function (v) {

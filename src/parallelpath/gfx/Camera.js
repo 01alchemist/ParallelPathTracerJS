@@ -53,7 +53,7 @@ System.register(["../InputListener", "../util/math/Vec3f", "../util/math/Quatern
                         this.rotate(this.getForward(), -this.sensitivity * dt);
                 };
                 Camera.prototype.move = function (direction, amount) {
-                    this.pos.set(this.pos.add(direction.scale(amount)));
+                    this.pos.setVec(this.pos.add(direction.scaleNumber(amount)));
                 };
                 Camera.prototype.rotate = function (axis, theta) {
                     var rotation = new Quaternion_1.Quaternion().createFromAxisAngle(axis.x, axis.y, axis.z, theta);

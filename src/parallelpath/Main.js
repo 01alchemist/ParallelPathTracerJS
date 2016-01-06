@@ -17,8 +17,8 @@ System.register(["./gfx/gfx", "./util/util", "./Engine"], function(exports_1) {
                 function Main() {
                     util_1.Config.init();
                     Main.display = new gfx_1.Display(util_1.Config.window_width, util_1.Config.window_height, util_1.Config.display_scale, "Parallel PathTracer");
-                    Main.display.create();
                     Main.tracer = new gfx_1.Tracer();
+                    Main.display.create(Main.tracer.pixels);
                     Main.engine = new Engine_1.Engine(Main.display, Main.tracer);
                     Main.engine.start();
                 }

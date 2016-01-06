@@ -10,7 +10,7 @@ System.register([], function(exports_1) {
                     this.height = height;
                     this.scale = scale;
                 }
-                Display.prototype.create = function () {
+                Display.prototype.create = function (pixels) {
                     this.info = document.getElementById("info");
                     this.canvas = document.getElementById("viewport");
                     this.canvas.width = this.width;

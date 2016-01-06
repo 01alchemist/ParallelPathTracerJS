@@ -59,6 +59,8 @@ export class TraceWorkerManager {
         var width:number = Config.window_width;
         var height:number = Config.window_height;
 
+        var thread_id = 0;
+
         if (n > 1) {
             width /= n;
             height /= n;
@@ -66,7 +68,7 @@ export class TraceWorkerManager {
                 for (var i = 0; i < n; i++) {
                     this.jobs.push(new TraceJob(
                         this.pixelMemory,
-                        width, height, i * width, j * height, i + j * width, this.tracer
+                        width, height, i * width, j * height, ++thread_id, this.tracer
                     ));
                 }
             }
@@ -85,18 +87,20 @@ export class TraceWorkerManager {
     }
 
     render():void {
-        this.jobs.forEach(function (w:TraceJob) {
-            w.run();
-        });
+        if (this.workersFinished()) {
+            this.jobs.forEach(function (w:TraceJob) {
+                w.run();
+            });
+        }
     }
 
     workersFinished():boolean {
         var isAllFinished:boolean = true;
-        this.jobs.forEach(function (w:TraceJob) {
-            if (!w.isFinished()) {
+        for (var i = 0; i < this.jobs.length; i++) {
+            if (!this.jobs[i].thread.initialized || !this.jobs[i].finished) {
                 isAllFinished = false;
             }
-        });
+        }
         return isAllFinished;
     }
 }

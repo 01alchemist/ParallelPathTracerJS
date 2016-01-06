@@ -12,8 +12,8 @@ export class Main
 	constructor() {
         Config.init();
 		Main.display = new Display(Config.window_width, Config.window_height, Config.display_scale, "Parallel PathTracer");
-        Main.display.create();
-        Main.tracer = new Tracer();
+		Main.tracer = new Tracer();
+		Main.display.create(Main.tracer.pixels);
         Main.engine = new Engine(Main.display, Main.tracer);
         Main.engine.start();
 	}

@@ -45,6 +45,7 @@ export class TraceWorker {
 
                 postMessage(TraceWorker.INITED);
 
+                self.id = e.data.id;
                 self.tracer = e.data.tracer;
 
                 self.tracer.camera = Camera.cast(self.tracer.camera);
@@ -73,8 +74,8 @@ export class TraceWorker {
             } else if (self.command == TraceWorker.TRACE) {
                 self.command = null;
                 self.ar = e.data.ar;
-                self.tracer.camera.rot.set(e.data.rot);
-                self.tracer.camera.pos.set(e.data.pos);
+                self.tracer.camera.rot.setFromQuaternion(e.data.rot);
+                self.tracer.camera.pos.setVec(e.data.pos);
                 self.run();
                 postMessage(TraceWorker.TRACED);
             }
@@ -95,7 +96,9 @@ export class TraceWorker {
 
     run():void {
         this.finished = false;
-        //console.log("Traced");
+
+        //console.time("Traced");
+
         if (this.tracer != null) {
 
             var ray_primary:Ray = new Ray();
@@ -129,7 +132,7 @@ export class TraceWorker {
                         }
 
                         // Get the average color of the sample
-                        var sample_averaged:Vec3f = sample.divide(Config.ss_amount);
+                        var sample_averaged:Vec3f = sample.divideNumber(Config.ss_amount);
 
                         // Add the averaged sample to the samples
                         color = sample_averaged;
@@ -141,7 +144,9 @@ export class TraceWorker {
                         ray_primary = Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
 
                         // Do the path tracing
+
                         color = TraceWorker.pathTrace(ray_primary, this.tracer.scene, 0, 1.0);
+
                         color.x = this.samples[index] = this.samples[index] + color.x;
                         color.y = this.samples[index + 1] = this.samples[index] + color.y;
                         color.z = this.samples[index + 2] = this.samples[index] + color.z;
@@ -158,12 +163,14 @@ export class TraceWorker {
                 }
             }
         }
+
+        //console.timeEnd("Traced");
         this.samples_taken++;
         this.finished = true;
     }
     drawPixelVec3fAveraged(index:number, color:Vec3f, factor:number):void {
 
-        var average:Vec3f = <Vec3f>MathUtils.clamp(color.divide(factor), 0.0, 1.0);
+        var average:Vec3f = <Vec3f>MathUtils.clamp(color.divideNumber(factor), 0.0, 1.0);
 
         var red:number = (average.x * 255.0);
         var green:number = (average.y * 255.0);
@@ -178,7 +185,7 @@ export class TraceWorker {
 
         color = <Vec3f>MathUtils.smoothstep(MathUtils.clamp(color, 0.0, 1.0), 0.0, 1.0);
 
-        var index:number = ((y * (this.window_width * 4)) + (x * 4));
+        var index:number = ((y * (this.window_width * 3)) + (x * 3));
         var red:number = (color.x * 255.0);
         var green:number = (color.y * 255.0);
         var blue:number = (color.z * 255.0);
@@ -231,7 +238,7 @@ export class TraceWorker {
 
         // If the ray hit a purely emissive surface, return the emittance
         if (xObject.material.emittance.length() > 0.0 && xFinal.getT() > Config.epsilon) {
-            return xObject.material.emittance.scale(weight);
+            return xObject.material.emittance.scaleNumber(weight);
         }
 
         // Store the required data into temp objects
@@ -300,8 +307,8 @@ export class TraceWorker {
             if (M.reflectance.length() > 0.0)
             {
                 var randomRay:Ray = new Ray(P, N.randomHemisphere());
-                var NdotRD:number = Math.abs(N.dot(randomRay.getDir()));
-                var BRDF:Vec3f = M.reflectance.scale((1.0 / Math.PI) * 2.0 * NdotRD);
+                var NdotRD:number = Math.abs(N.dot(randomRay.dir));
+                var BRDF:Vec3f = M.reflectance.scaleNumber((1.0 / Math.PI) * 2.0 * NdotRD);
                 var REFLECTED:Vec3f = TraceWorker.pathTrace(randomRay, scene, n + 1, weight);
                 color = color.add(BRDF.scale(REFLECTED));
             }
@@ -319,133 +326,6 @@ export class TraceWorker {
         }
 
         return color;
-    }
-
-    static traceColor(ray:Ray, scene:Scene, n:number):Vec3f {
-        // Break out from the method if max recursion depth is hit
-        if (n > Config.recursion_max)
-            return Shader.COLOR_NULL;
-
-        // Initialize the required intersection data
-        var xInit:Intersection = null;
-        var xFinal:Intersection = null;
-        var xObject:TracerObject = null;
-        var tInit:number = Number.MAX_VALUE;
-
-        // Find the nearest intersection point
-        scene.objects.forEach(function (obj:TracerObject) {
-            obj.primitives.forEach(function (primitive:Primitive) {
-                xInit = primitive.intersect(ray);
-                if (xInit != null && xInit.getT() < tInit) {
-                    xFinal = xInit;
-                    tInit = xFinal.getT();
-                    xObject = obj;
-                }
-            });
-        });
-
-        // Return a blank color if the ray didn't hit anything
-        if (xFinal == null)
-            return Shader.COLOR_RED;
-
-        // Initialize the main color which will be calculated and returned
-        var cFinal:Vec3f = new Vec3f();
-
-        // Shade the surface point against all lights in the scene
-        scene.lights.forEach(function (light:Light) {
-
-            cFinal.set(cFinal.add(Shader.main(ray, xFinal, light, xObject.material)));
-
-            var ray_shadow:Ray = null;
-
-            if (xObject.material.reflectivity != 1.0) {
-                var L_Vector:Vec3f = light.pos.sub(xFinal.pos);
-                var L_length:number = L_Vector.length();
-
-                if (light.getLightType() == light_types.DIRECTIONAL) {
-
-                    ray_shadow = new Ray(xFinal.pos, light.dir.negate());
-                    L_length = Number.MAX_VALUE;
-                }
-                else if (light.getLightType() == light_types.POINT) {
-
-                    ray_shadow = new Ray(xFinal.pos, L_Vector);
-                }
-
-                if (ray_shadow != null) {
-                    cFinal.set(cFinal.scale(Math.min(TraceWorker.traceShadow(ray_shadow, scene, xObject, L_length) + xObject.material.reflectivity, 1.0)));
-                }
-            }
-
-        });
-
-        if (xObject.material.reflectivity > 0.0) {
-            var ray_reflected:Ray = new Ray(xFinal.pos, ray.dir.reflect(xFinal.getNorm()));
-            cFinal.set(cFinal.add(TraceWorker.traceColor(ray_reflected, scene, n + 1).scale(xObject.material.reflectivity)));
-        }
-
-        if (xObject.material.refractivity > 0.0) {
-            var ray_refracted:Ray;
-            var N:Vec3f = xFinal.norm;
-            var NdotI:number = ray.dir.dot(N), ior, n1, n2, cos_t;
-
-            if (NdotI > 0.0) {
-                n1 = ray.getIOR();
-                n2 = xObject.material.ior;
-                N = N.negate();
-            } else {
-                n1 = xObject.material.ior;
-                n2 = ray.getIOR();
-                NdotI = -NdotI;
-            }
-
-            ior = n2 / n1;
-            cos_t = ior * ior * (1.0 - NdotI * NdotI);
-
-            ray_refracted = new Ray(xFinal.pos, ray.dir.refract(N, ior, NdotI, cos_t), 1.0);
-            cFinal.set(cFinal.add(TraceWorker.traceColor(ray_refracted, scene, n + 1).scale(xObject.material.refractivity)));
-        }
-
-        cFinal.set(cFinal.add(xObject.material.color_ambient));
-
-        return <Vec3f>MathUtils.clamp(cFinal, 0.0, 1.0);
-    }
-
-    static traceShadow(ray:Ray, s:Scene, thisobj:TracerObject, L_length:number) {
-        var xInit:Intersection = null;
-        var xFinal:Intersection = null;
-        var xObject:TracerObject = null;
-        var tInit:number = Number.MAX_VALUE;
-        var weight:number = 1.0;
-
-        s.objects.forEach(function (obj:TracerObject) {
-            if (obj === thisobj) {
-                return;
-            }
-
-            obj.primitives.forEach(function (primitive:Primitive) {
-                xInit = primitive.intersect(ray);
-                if (xInit != null && xInit.getT() < tInit && xInit.getT() < L_length) {
-                    xFinal = xInit;
-                    tInit = xFinal.getT();
-                    xObject = obj;
-                }
-            });
-        });
-
-        if (xFinal == null) {
-            return 1.0;
-        }
-
-        if (xObject.material.reflectivity > 0.0) {
-            weight -= xObject.material.reflectivity;
-        }
-
-        if (xObject.material.refractivity > 0.0) {
-            weight *= xObject.material.refractivity;
-        }
-
-        return weight;
     }
 
     getWidth():number {

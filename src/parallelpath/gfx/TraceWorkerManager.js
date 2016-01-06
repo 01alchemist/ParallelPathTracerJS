@@ -45,12 +45,13 @@ System.register(["../util/Config", "./TraceJob"], function(exports_1) {
                     this.jobs = [];
                     var width = Config_1.Config.window_width;
                     var height = Config_1.Config.window_height;
+                    var thread_id = 0;
                     if (n > 1) {
                         width /= n;
                         height /= n;
                         for (var j = 0; j < n; j++) {
                             for (var i = 0; i < n; i++) {
-                                this.jobs.push(new TraceJob_1.TraceJob(this.pixelMemory, width, height, i * width, j * height, i + j * width, this.tracer));
+                                this.jobs.push(new TraceJob_1.TraceJob(this.pixelMemory, width, height, i * width, j * height, ++thread_id, this.tracer));
                             }
                         }
                     }
@@ -65,17 +66,19 @@ System.register(["../util/Config", "./TraceJob"], function(exports_1) {
                     });
                 };
                 TraceWorkerManager.prototype.render = function () {
-                    this.jobs.forEach(function (w) {
-                        w.run();
-                    });
+                    if (this.workersFinished()) {
+                        this.jobs.forEach(function (w) {
+                            w.run();
+                        });
+                    }
                 };
                 TraceWorkerManager.prototype.workersFinished = function () {
                     var isAllFinished = true;
-                    this.jobs.forEach(function (w) {
-                        if (!w.isFinished()) {
+                    for (var i = 0; i < this.jobs.length; i++) {
+                        if (!this.jobs[i].thread.initialized || !this.jobs[i].finished) {
                             isAllFinished = false;
                         }
-                    });
+                    }
                     return isAllFinished;
                 };
                 return TraceWorkerManager;

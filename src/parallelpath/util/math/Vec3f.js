@@ -5,12 +5,9 @@ System.register([], function(exports_1) {
         execute: function() {
             Vec3f = (function () {
                 function Vec3f(x, y, z) {
-                    x = x == undefined ? 0 : x;
-                    y = y == undefined ? x : y;
-                    z = z == undefined ? x : z;
-                    this.x = x;
-                    this.y = y;
-                    this.z = z;
+                    this.x = x = x == undefined ? 0 : x;
+                    this.y = y == undefined ? x : y;
+                    this.z = z == undefined ? x : z;
                 }
                 Vec3f.prototype._isThis = function (value) {
                     return value instanceof Object || value instanceof Vec3f;
@@ -22,58 +19,40 @@ System.register([], function(exports_1) {
                     return (this.x == v.x && this.y == v.y && this.z == v.z);
                 };
                 Vec3f.prototype.set = function (x, y, z) {
-                    var v = this._isThis(x) ? x : null;
-                    if (v) {
-                        this.x = v.x;
-                        this.y = v.y;
-                        this.z = v.z;
-                    }
-                    else {
-                        this.x = x;
-                        this.y = y;
-                        this.z = z;
-                    }
+                    this.x = x = x == undefined ? 0 : x;
+                    this.y = y == undefined ? x : y;
+                    this.z = z == undefined ? x : z;
                     return this;
                 };
-                Vec3f.prototype.add = function (value) {
-                    var v = this._isThis(value) ? value : null;
-                    if (v) {
-                        return new Vec3f(this.x + v.x, this.y + v.y, this.z + v.z);
-                    }
-                    else {
-                        var f = value;
-                        return new Vec3f(this.x + f, this.y + f, this.z + f);
-                    }
+                Vec3f.prototype.setVec = function (v) {
+                    this.x = v.x;
+                    this.y = v.y;
+                    this.z = v.z;
+                    return this;
                 };
-                Vec3f.prototype.sub = function (value) {
-                    var v = this._isThis(value) ? value : null;
-                    if (v) {
-                        return new Vec3f(this.x - v.x, this.y - v.y, this.z - v.z);
-                    }
-                    else {
-                        var f = value;
-                        return new Vec3f(this.x - f, this.y - f, this.z - f);
-                    }
+                Vec3f.prototype.add = function (v) {
+                    return new Vec3f(this.x + v.x, this.y + v.y, this.z + v.z);
                 };
-                Vec3f.prototype.scale = function (value) {
-                    var v = this._isThis(value) ? value : null;
-                    if (v) {
-                        return new Vec3f(this.x * v.x, this.y * v.y, this.z * v.z);
-                    }
-                    else {
-                        var f = value;
-                        return new Vec3f(this.x * f, this.y * f, this.z * f);
-                    }
+                Vec3f.prototype.addNumber = function (f) {
+                    return new Vec3f(this.x + f, this.y + f, this.z + f);
                 };
-                Vec3f.prototype.divide = function (value) {
-                    var v = this._isThis(value) ? value : null;
-                    if (v) {
-                        return new Vec3f(this.x / v.x, this.y / v.y, this.z / v.z);
-                    }
-                    else {
-                        var f = value;
-                        return new Vec3f(this.x / f, this.y / f, this.z / f);
-                    }
+                Vec3f.prototype.sub = function (v) {
+                    return new Vec3f(this.x - v.x, this.y - v.y, this.z - v.z);
+                };
+                Vec3f.prototype.subNumber = function (f) {
+                    return new Vec3f(this.x - f, this.y - f, this.z - f);
+                };
+                Vec3f.prototype.scale = function (v) {
+                    return new Vec3f(this.x * v.x, this.y * v.y, this.z * v.z);
+                };
+                Vec3f.prototype.scaleNumber = function (f) {
+                    return new Vec3f(this.x * f, this.y * f, this.z * f);
+                };
+                Vec3f.prototype.divide = function (v) {
+                    return new Vec3f(this.x / v.x, this.y / v.y, this.z / v.z);
+                };
+                Vec3f.prototype.divideNumber = function (f) {
+                    return new Vec3f(this.x / f, this.y / f, this.z / f);
                 };
                 Vec3f.prototype.cross = function (v) {
                     var x = this.y * v.z - v.y * this.z;
@@ -86,7 +65,7 @@ System.register([], function(exports_1) {
                 };
                 Vec3f.prototype.mul = function (q) {
                     var q_inv = q.conjugate();
-                    var w = q.mul(this).mul(q_inv);
+                    var w = q.mulVector(this).mul(q_inv);
                     return new Vec3f(w.x, w.y, w.z);
                 };
                 Vec3f.prototype.length = function () {
@@ -100,12 +79,12 @@ System.register([], function(exports_1) {
                     return new Vec3f(-this.x, -this.y, -this.z);
                 };
                 Vec3f.prototype.reflect = function (N) {
-                    return this.sub(N.scale(N.dot(this)).scale(2.0));
+                    return this.sub(N.scaleNumber(N.dot(this)).scaleNumber(2.0));
                 };
                 Vec3f.prototype.refract = function (N, n, NdotI, cos_t) {
                     cos_t = Math.sqrt(1.0 - cos_t);
                     if (cos_t < 1.0)
-                        return this.scale(n).add(N.scale(n * NdotI - cos_t));
+                        return this.scaleNumber(n).add(N.scaleNumber(n * NdotI - cos_t));
                     else
                         return this.reflect(N);
                 };
@@ -120,7 +99,7 @@ System.register([], function(exports_1) {
                     var up = new Vec3f(0.0, 0.0, 1.0);
                     var a1 = up.cross(w).normalize();
                     var a2 = a1.cross(w).normalize();
-                    return a1.scale(this.x).add(a2.scale(this.y)).add(w.scale(this.z)).normalize();
+                    return a1.scaleNumber(this.x).add(a2.scaleNumber(this.y)).add(w.scaleNumber(this.z)).normalize();
                 };
                 Vec3f.prototype.randomHemisphere = function () {
                     var phi = Math.random() * (2.0 * Math.PI);

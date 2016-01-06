@@ -23,10 +23,10 @@ System.register(["./Vec3f"], function(exports_1) {
                     return this.t;
                 };
                 Intersection.prototype.setPos = function (pos) {
-                    this.pos.set(pos);
+                    this.pos.setVec(pos);
                 };
                 Intersection.prototype.setNorm = function (norm) {
-                    this.norm.set(norm);
+                    this.norm.setVec(norm);
                 };
                 Intersection.prototype.setT = function (t) {
                     this.t = t;

@@ -9,33 +9,31 @@ export class Quaternion {
     z:number;
 
     constructor(w?:number, x?:number, y?:number, z?:number) {
-        this.w = w == undefined?0:w;
-        this.x = x == undefined?0:x;
-        this.y = y == undefined?0:y;
-        this.z = z == undefined?0:z;
+        this.w = w == undefined ? 0 : w;
+        this.x = x == undefined ? 0 : x;
+        this.y = y == undefined ? 0 : y;
+        this.z = z == undefined ? 0 : z;
     }
 
-    set(w:Quaternion|number, x?:number, y?:number, z?:number):Quaternion {
-        let q:Quaternion = this._isThis(w) ? <Quaternion>w : null;
-
-        if(q){
-            this.w = q.w;
-            this.x = q.x;
-            this.y = q.y;
-            this.z = q.z;
-        }else{
-            this.w = <number>w;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
+    set(w:number, x?:number, y?:number, z?:number):Quaternion {
+        this.w = w == undefined ? 0 : w;
+        this.x = x == undefined ? 0 : x;
+        this.y = y == undefined ? 0 : y;
+        this.z = z == undefined ? 0 : z;
         return this;
     }
 
-    private _isThis(value:any):boolean{
-        if(value instanceof Object || value instanceof Quaternion){
-            if(value.w != undefined && value.x != undefined && value.y != undefined&& value.z != undefined){
+    setFromQuaternion(q:Quaternion):Quaternion {
+        this.w = q.w;
+        this.x = q.x;
+        this.y = q.y;
+        this.z = q.z;
+        return this;
+    }
+
+    private _isThis(value:any):boolean {
+        if (value instanceof Object || value instanceof Quaternion) {
+            if (value.w != undefined && value.x != undefined && value.y != undefined && value.z != undefined) {
                 return true;
             }
         }
@@ -61,20 +59,12 @@ export class Quaternion {
         return this;
     }
 
-    mul(value:Quaternion|Vec3f):Quaternion {
-        let r:Quaternion = new Quaternion();
-        if (this._isThis(value)) {
-
-            let q:Quaternion = <Quaternion>value;
-
-            r.w = this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z;
-            r.x = this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y;
-            r.y = this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x;
-            r.z = this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w;
-        } else if (value instanceof Vec3f || value instanceof Object) {
-            r = this.mulVector(<Vec3f>value);
-        }
-
+    mul(q:Quaternion):Quaternion {
+        let r = new Quaternion();
+        r.w = this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z;
+        r.x = this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y;
+        r.y = this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x;
+        r.z = this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w;
         return r;
     }
 

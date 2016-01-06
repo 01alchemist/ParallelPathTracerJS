@@ -37,10 +37,10 @@ System.register(["../util/math/Vec3f"], function(exports_1) {
                 Light.cast = function (obj) {
                     var light = new Light();
                     light.light_type = obj.light_type;
-                    light.color = new Vec3f_1.Vec3f().set(obj.color);
+                    light.color = new Vec3f_1.Vec3f().setVec(obj.color);
                     light.intensity = obj.intensity;
-                    light.dir = obj.dir ? new Vec3f_1.Vec3f().set(obj.dir) : obj.dir;
-                    light.pos = obj.pos ? new Vec3f_1.Vec3f().set(obj.pos) : obj.pos;
+                    light.dir = obj.dir ? new Vec3f_1.Vec3f().setVec(obj.dir) : obj.dir;
+                    light.pos = obj.pos ? new Vec3f_1.Vec3f().setVec(obj.pos) : obj.pos;
                     light.constant = obj.constant;
                     light.linear = obj.linear;
                     light.exponent = obj.exponent;

@@ -22,7 +22,7 @@ export class Shader
 	static main(r:Ray, x:Intersection, l:Light, m:Material):Vec3f
 	{
 		var C:Vec3f;
-        var N:Vec3f = x.getNorm();
+        var N:Vec3f = x.norm;
         var L:Vec3f;
         var V:Vec3f;
         var H:Vec3f;
@@ -37,19 +37,19 @@ export class Shader
         var L_length:number;
         var A:number = 1.0;
 
-		if (l.getLightType() == light_types.DIRECTIONAL)
+		if (l.light_type == light_types.DIRECTIONAL)
 		{
-			L = l.getDir().negate().normalize();
-			V = r.getDir().negate();
+			L = l.dir.negate().normalize();
+			V = r.dir.negate();
 			H = V.add(L).normalize();
-		} else if (l.getLightType() == light_types.POINT)
+		} else if (l.light_type == light_types.POINT)
 		{
-			L = l.getPos().sub(x.getPos());
+			L = l.pos.sub(x.pos);
 			L_length = L.length();
 			L = L.normalize();
-			V = r.getDir().negate();
+			V = r.dir.negate();
 			H = V.add(L).normalize();
-			A = l.getConstant() + l.getLinear() * L_length + l.getExponent() * L_length * L_length + Config.epsilon;
+			A = l.constant + l.linear * L_length + l.exponent * L_length * L_length + Config.epsilon;
 		} else
 		{
 			return Shader.COLOR_NULL;
@@ -61,7 +61,7 @@ export class Shader
 		NdotH = Math.min(N.dot(H), 1.0);
 		VdotH = Math.min(V.dot(H), 1.0);
 
-		if (m.getMaterialType() == material_types.PHONG)
+		if (m.material_type == material_types.PHONG)
 		{
 			C = new Vec3f();
 
@@ -69,15 +69,15 @@ export class Shader
 			lambertian = Math.min(NdotL, 1.0);
 
 			// Calculate the specular term
-			if (m.getShininess() > 0.0)
-				specular = Math.pow(NdotH, m.getShininess()); // Specular
+			if (m.shininess > 0.0)
+				specular = Math.pow(NdotH, m.shininess); // Specular
 			else
 				specular = 0.0;
 
 			// Add all the terms together to C
-			C.set(C.add(l.getColor().scale(m.getColorDiffuse()).scale(lambertian).scale(l.getIntensity())));
-			C.set(C.add(m.getColorSpecular().scale(specular).scale(l.getIntensity())));
-		} else if (m.getMaterialType() == material_types.COOKTORRANCE)
+			C.setVec(C.add(l.color.scale(m.color_diffuse).scaleNumber(lambertian).scaleNumber(l.intensity)));
+			C.setVec(C.add(m.color_specular.scaleNumber(specular).scaleNumber(l.intensity)));
+		} else if (m.material_type == material_types.COOKTORRANCE)
 		{
 			C = new Vec3f();
 
@@ -86,9 +86,9 @@ export class Shader
 				return Shader.COLOR_NULL;
 
 			// Get the surface properties
-			var R:number = m.getRoughness();
-			var F:number = m.getFresnel();
-			var K:number = m.getDensity();
+			var R:number = m.roughness;
+			var F:number = m.fresnel;
+			var K:number = m.density;
 
 			// Evaluate the geometric term
 			var geo_numerator:number = 2.0 * NdotH;
@@ -114,15 +114,15 @@ export class Shader
 			var Rs:number = Rs_numerator / Rs_denominator;
 
 			// Add all the terms to C
-			var final_a:Vec3f = l.getColor().scale(NdotL).scale(l.getIntensity());
-			var final_b:Vec3f = m.getColorDiffuse().scale(K).add(m.getColorSpecular().scale(Rs * (1.0 - K)));
-			C.set(final_a.scale(final_b));
+			var final_a:Vec3f = l.color.scaleNumber(NdotL).scaleNumber(l.intensity);
+			var final_b:Vec3f = m.color_diffuse.scaleNumber(K).add(m.color_specular.scaleNumber(Rs * (1.0 - K)));
+			C.setVec(final_a.scale(final_b));
 		} else
 		{
 			return Shader.COLOR_NULL;
 		}
 
-		return C.divide(A);
+		return C.divideNumber(A);
 	}
 
 }

@@ -31,12 +31,12 @@ export class Intersection
 
 	setPos(pos:Vec3f):void
 	{
-		this.pos.set(pos);
+		this.pos.setVec(pos);
 	}
 
 	setNorm(norm:Vec3f):void
 	{
-		this.norm.set(norm);
+		this.norm.setVec(norm);
 	}
 
 	setT(t:number):void

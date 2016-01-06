@@ -18,12 +18,12 @@ export class Config
 	static window_width:number = 640;
 	static window_height:number = 360;
 	static display_scale:number = 1;
-	static recursion_max:number = 10;
+	static recursion_max:number = 6;
 	static thread_amount:number = -1;
     static epsilon:number = 1e-3;
 	static debug:boolean = false;
 	static ss_enabled:boolean = true;
-	static ss_amount:number = 2;
+	static ss_amount:number = 3;
 	static ss_jitter:number = 0.001;
 
     constructor(){

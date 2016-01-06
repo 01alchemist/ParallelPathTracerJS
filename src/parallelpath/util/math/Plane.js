@@ -32,21 +32,21 @@ System.register(["./Primitive", "./Vec3f", "./Intersection", "../Config"], funct
                     var P;
                     var d;
                     var t;
-                    P = this.vertices[0].sub(r.getPos());
-                    d = this.normal.dot(r.getDir());
+                    P = this.vertices[0].sub(r.pos);
+                    d = this.normal.dot(r.dir);
                     if (d > 0.0)
                         return null;
                     t = P.dot(this.normal) / d;
                     if (t < Config_1.Config.epsilon)
                         return null;
                     var x = new Intersection_1.Intersection();
-                    x.setPos(r.getPos().add(r.getDir().scale(t)));
+                    x.setPos(r.pos.add(r.dir.scaleNumber(t)));
                     x.setNorm(this.normal.normalize());
                     x.setT(t);
                     return x;
                 };
                 Plane.cast = function (obj) {
-                    var plane = new Plane(new Vec3f_1.Vec3f().set(obj.vertices[0]), new Vec3f_1.Vec3f().set(obj.normal));
+                    var plane = new Plane(new Vec3f_1.Vec3f().setVec(obj.vertices[0]), new Vec3f_1.Vec3f().setVec(obj.normal));
                     return plane;
                 };
                 return Plane;

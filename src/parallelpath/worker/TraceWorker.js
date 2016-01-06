@@ -36,6 +36,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                             self.command = null;
                             self.pixelMemory = new Uint8ClampedArray(e.data.pixelMemory);
                             postMessage(TraceWorker.INITED);
+                            self.id = e.data.id;
                             self.tracer = e.data.tracer;
                             self.tracer.camera = Camera_1.Camera.cast(self.tracer.camera);
                             self.tracer.scene.objects.forEach(function (obj) {
@@ -55,8 +56,8 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                         else if (self.command == TraceWorker.TRACE) {
                             self.command = null;
                             self.ar = e.data.ar;
-                            self.tracer.camera.rot.set(e.data.rot);
-                            self.tracer.camera.pos.set(e.data.pos);
+                            self.tracer.camera.rot.setFromQuaternion(e.data.rot);
+                            self.tracer.camera.pos.setVec(e.data.pos);
                             self.run();
                             postMessage(TraceWorker.TRACED);
                         }
@@ -88,7 +89,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                                         var ray = util_1.Ray.calcSupersampledCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y, util_1.Config.ss_jitter);
                                         sample = sample.add(TraceWorker.pathTrace(ray, this.tracer.scene, 0, 1.0));
                                     }
-                                    var sample_averaged = sample.divide(util_1.Config.ss_amount);
+                                    var sample_averaged = sample.divideNumber(util_1.Config.ss_amount);
                                     color = sample_averaged;
                                     color.x = this.samples[index] = this.samples[index] + sample_averaged.x;
                                     color.y = this.samples[index + 1] = this.samples[index] + sample_averaged.y;
@@ -113,7 +114,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     this.finished = true;
                 };
                 TraceWorker.prototype.drawPixelVec3fAveraged = function (index, color, factor) {
-                    var average = util_1.MathUtils.clamp(color.divide(factor), 0.0, 1.0);
+                    var average = util_1.MathUtils.clamp(color.divideNumber(factor), 0.0, 1.0);
                     var red = (average.x * 255.0);
                     var green = (average.y * 255.0);
                     var blue = (average.z * 255.0);
@@ -123,7 +124,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                 };
                 TraceWorker.prototype.drawPixelVec3f = function (x, y, color) {
                     color = util_1.MathUtils.smoothstep(util_1.MathUtils.clamp(color, 0.0, 1.0), 0.0, 1.0);
-                    var index = ((y * (this.window_width * 4)) + (x * 4));
+                    var index = ((y * (this.window_width * 3)) + (x * 3));
                     var red = (color.x * 255.0);
                     var green = (color.y * 255.0);
                     var blue = (color.z * 255.0);
@@ -161,7 +162,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     if (xFinal == null)
                         return Shader_1.Shader.COLOR_RED;
                     if (xObject.material.emittance.length() > 0.0 && xFinal.getT() > util_1.Config.epsilon) {
-                        return xObject.material.emittance.scale(weight);
+                        return xObject.material.emittance.scaleNumber(weight);
                     }
                     var M = xObject.material;
                     var P = xFinal.pos;
@@ -202,8 +203,8 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     if (Pr < Pp && Kd + Ks != 0.0) {
                         if (M.reflectance.length() > 0.0) {
                             var randomRay = new util_1.Ray(P, N.randomHemisphere());
-                            var NdotRD = Math.abs(N.dot(randomRay.getDir()));
-                            var BRDF = M.reflectance.scale((1.0 / Math.PI) * 2.0 * NdotRD);
+                            var NdotRD = Math.abs(N.dot(randomRay.dir));
+                            var BRDF = M.reflectance.scaleNumber((1.0 / Math.PI) * 2.0 * NdotRD);
                             var REFLECTED = TraceWorker.pathTrace(randomRay, scene, n + 1, weight);
                             color = color.add(BRDF.scale(REFLECTED));
                         }
@@ -216,100 +217,6 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                         }
                     }
                     return color;
-                };
-                TraceWorker.traceColor = function (ray, scene, n) {
-                    if (n > util_1.Config.recursion_max)
-                        return Shader_1.Shader.COLOR_NULL;
-                    var xInit = null;
-                    var xFinal = null;
-                    var xObject = null;
-                    var tInit = Number.MAX_VALUE;
-                    scene.objects.forEach(function (obj) {
-                        obj.primitives.forEach(function (primitive) {
-                            xInit = primitive.intersect(ray);
-                            if (xInit != null && xInit.getT() < tInit) {
-                                xFinal = xInit;
-                                tInit = xFinal.getT();
-                                xObject = obj;
-                            }
-                        });
-                    });
-                    if (xFinal == null)
-                        return Shader_1.Shader.COLOR_RED;
-                    var cFinal = new util_1.Vec3f();
-                    scene.lights.forEach(function (light) {
-                        cFinal.set(cFinal.add(Shader_1.Shader.main(ray, xFinal, light, xObject.material)));
-                        var ray_shadow = null;
-                        if (xObject.material.reflectivity != 1.0) {
-                            var L_Vector = light.pos.sub(xFinal.pos);
-                            var L_length = L_Vector.length();
-                            if (light.getLightType() == util_1.light_types.DIRECTIONAL) {
-                                ray_shadow = new util_1.Ray(xFinal.pos, light.dir.negate());
-                                L_length = Number.MAX_VALUE;
-                            }
-                            else if (light.getLightType() == util_1.light_types.POINT) {
-                                ray_shadow = new util_1.Ray(xFinal.pos, L_Vector);
-                            }
-                            if (ray_shadow != null) {
-                                cFinal.set(cFinal.scale(Math.min(TraceWorker.traceShadow(ray_shadow, scene, xObject, L_length) + xObject.material.reflectivity, 1.0)));
-                            }
-                        }
-                    });
-                    if (xObject.material.reflectivity > 0.0) {
-                        var ray_reflected = new util_1.Ray(xFinal.pos, ray.dir.reflect(xFinal.getNorm()));
-                        cFinal.set(cFinal.add(TraceWorker.traceColor(ray_reflected, scene, n + 1).scale(xObject.material.reflectivity)));
-                    }
-                    if (xObject.material.refractivity > 0.0) {
-                        var ray_refracted;
-                        var N = xFinal.norm;
-                        var NdotI = ray.dir.dot(N), ior, n1, n2, cos_t;
-                        if (NdotI > 0.0) {
-                            n1 = ray.getIOR();
-                            n2 = xObject.material.ior;
-                            N = N.negate();
-                        }
-                        else {
-                            n1 = xObject.material.ior;
-                            n2 = ray.getIOR();
-                            NdotI = -NdotI;
-                        }
-                        ior = n2 / n1;
-                        cos_t = ior * ior * (1.0 - NdotI * NdotI);
-                        ray_refracted = new util_1.Ray(xFinal.pos, ray.dir.refract(N, ior, NdotI, cos_t), 1.0);
-                        cFinal.set(cFinal.add(TraceWorker.traceColor(ray_refracted, scene, n + 1).scale(xObject.material.refractivity)));
-                    }
-                    cFinal.set(cFinal.add(xObject.material.color_ambient));
-                    return util_1.MathUtils.clamp(cFinal, 0.0, 1.0);
-                };
-                TraceWorker.traceShadow = function (ray, s, thisobj, L_length) {
-                    var xInit = null;
-                    var xFinal = null;
-                    var xObject = null;
-                    var tInit = Number.MAX_VALUE;
-                    var weight = 1.0;
-                    s.objects.forEach(function (obj) {
-                        if (obj === thisobj) {
-                            return;
-                        }
-                        obj.primitives.forEach(function (primitive) {
-                            xInit = primitive.intersect(ray);
-                            if (xInit != null && xInit.getT() < tInit && xInit.getT() < L_length) {
-                                xFinal = xInit;
-                                tInit = xFinal.getT();
-                                xObject = obj;
-                            }
-                        });
-                    });
-                    if (xFinal == null) {
-                        return 1.0;
-                    }
-                    if (xObject.material.reflectivity > 0.0) {
-                        weight -= xObject.material.reflectivity;
-                    }
-                    if (xObject.material.refractivity > 0.0) {
-                        weight *= xObject.material.refractivity;
-                    }
-                    return weight;
                 };
                 TraceWorker.prototype.getWidth = function () {
                     return this.width;

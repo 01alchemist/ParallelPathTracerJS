@@ -60,7 +60,7 @@ export class Camera
 
 	move(direction:Vec3f, amount:number):void
 	{
-        this.pos.set(this.pos.add(direction.scale(amount)));
+        this.pos.setVec(this.pos.add(direction.scaleNumber(amount)));
 	}
 
 	rotate(axis:Vec3f, theta:number):void
