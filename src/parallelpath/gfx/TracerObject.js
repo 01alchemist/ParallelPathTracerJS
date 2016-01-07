@@ -1,5 +1,5 @@
-System.register(["../util/math/Vec3f", "../util/math/Sphere", "../util/math/Plane"], function(exports_1) {
-    var Vec3f_1, Sphere_1, Plane_1;
+System.register(["../util/math/Vec3f", "../util/math/Sphere", "../util/math/Plane", "../util/math/Transform"], function(exports_1) {
+    var Vec3f_1, Sphere_1, Plane_1, Transform_1;
     var TracerObject;
     return {
         setters:[
@@ -11,6 +11,9 @@ System.register(["../util/math/Vec3f", "../util/math/Sphere", "../util/math/Plan
             },
             function (Plane_1_1) {
                 Plane_1 = Plane_1_1;
+            },
+            function (Transform_1_1) {
+                Transform_1 = Transform_1_1;
             }],
         execute: function() {
             TracerObject = (function () {
@@ -30,12 +33,16 @@ System.register(["../util/math/Vec3f", "../util/math/Sphere", "../util/math/Plan
                         this.primitives = arg1;
                         this.material = arg2;
                     }
+                    this.transform = new Transform_1.Transform();
                 }
                 TracerObject.prototype.getPrimitives = function () {
                     return this.primitives;
                 };
                 TracerObject.prototype.getMaterial = function () {
                     return this.material;
+                };
+                TracerObject.prototype.addPrimitive = function (primitive) {
+                    this.primitives.push(primitive);
                 };
                 return TracerObject;
             })();

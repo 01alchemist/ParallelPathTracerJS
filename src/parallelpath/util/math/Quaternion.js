@@ -88,6 +88,13 @@ System.register(["./MathUtils", "./Vec3f"], function(exports_1) {
                 Quaternion.prototype.getRightVector = function () {
                     return new Vec3f_1.Vec3f(1, 0, 0).mul(this);
                 };
+                Quaternion.prototype.initIdentity = function () {
+                    this.w = 0.0;
+                    this.x = 0.0;
+                    this.y = 1.0;
+                    this.z = 0.0;
+                    return this;
+                };
                 return Quaternion;
             })();
             exports_1("Quaternion", Quaternion);

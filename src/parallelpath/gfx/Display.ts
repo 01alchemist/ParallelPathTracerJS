@@ -47,8 +47,7 @@ export class Display {
 
         //this.glView.render();
         //var proxy = this.image.data;
-
-
+        this.ctx.clearRect(0, 0, this.image.width, this.image.height);
 
         for (var y = 0; y < this.image.height; y++) {
             for (var x = 0; x < this.image.width; x++) {

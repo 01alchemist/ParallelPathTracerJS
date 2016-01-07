@@ -1,7 +1,11 @@
-System.register([], function(exports_1) {
+System.register(["./Vec2f"], function(exports_1) {
+    var Vec2f_1;
     var Vec3f;
     return {
-        setters:[],
+        setters:[
+            function (Vec2f_1_1) {
+                Vec2f_1 = Vec2f_1_1;
+            }],
         execute: function() {
             Vec3f = (function () {
                 function Vec3f(x, y, z) {
@@ -12,6 +16,27 @@ System.register([], function(exports_1) {
                 Vec3f.prototype._isThis = function (value) {
                     return value instanceof Object || value instanceof Vec3f;
                 };
+                Object.defineProperty(Vec3f.prototype, "xy", {
+                    get: function () {
+                        return new Vec2f_1.Vec2f(this.x, this.y);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(Vec3f.prototype, "xz", {
+                    get: function () {
+                        return new Vec2f_1.Vec2f(this.x, this.z);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                Object.defineProperty(Vec3f.prototype, "yz", {
+                    get: function () {
+                        return new Vec2f_1.Vec2f(this.y, this.z);
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
                 Vec3f.prototype.toString = function () {
                     return "Vec3f[" + this.x + "," + this.y + "," + this.z + "]";
                 };
@@ -53,6 +78,12 @@ System.register([], function(exports_1) {
                 };
                 Vec3f.prototype.divideNumber = function (f) {
                     return new Vec3f(this.x / f, this.y / f, this.z / f);
+                };
+                Vec3f.prototype.distance = function (v) {
+                    var dx = this.x - v.x;
+                    var dy = this.y - v.y;
+                    var dz = this.z - v.z;
+                    return Math.sqrt(dx * dx + dy * dy + dz * dz);
                 };
                 Vec3f.prototype.cross = function (v) {
                     var x = this.y * v.z - v.y * this.z;

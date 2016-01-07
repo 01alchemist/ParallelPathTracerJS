@@ -89,11 +89,10 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                                         var ray = util_1.Ray.calcSupersampledCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y, util_1.Config.ss_jitter);
                                         sample = sample.add(TraceWorker.pathTrace(ray, this.tracer.scene, 0, 1.0));
                                     }
-                                    var sample_averaged = sample.divideNumber(util_1.Config.ss_amount);
-                                    color = sample_averaged;
-                                    color.x = this.samples[index] = this.samples[index] + sample_averaged.x;
-                                    color.y = this.samples[index + 1] = this.samples[index] + sample_averaged.y;
-                                    color.z = this.samples[index + 2] = this.samples[index] + sample_averaged.z;
+                                    color = sample.divideNumber(util_1.Config.ss_amount);
+                                    color.x = this.samples[index] = this.samples[index] + color.x;
+                                    color.y = this.samples[index + 1] = this.samples[index + 1] + color.y;
+                                    color.z = this.samples[index + 2] = this.samples[index + 2] + color.z;
                                 }
                                 else {
                                     ray_primary = util_1.Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);

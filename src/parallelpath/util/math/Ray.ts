@@ -14,7 +14,9 @@ export class Ray
         this.dir = dir?dir.normalize():new Vec3f();
         this.ior = ior || 1.0;
 	}
-
+	clone():Ray{
+		return new Ray(this.pos, this.dir, this.ior);
+	}
 	static calcCameraRay(camera:Camera, w:number, h:number, ar:number, x:number, y:number):Ray
 	{
 		let x_norm:number = (x - w * 0.5) / w * ar;

@@ -10,4 +10,4 @@ System.config({
         }
     }
 });
-System.import('src/parallelpath/worker/TraceWorker').then(null, console.error.bind(console));
+System.import('src/parallelpath/worker/TraceWorker2').then(null, console.error.bind(console));

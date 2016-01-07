@@ -1,4 +1,5 @@
 import {Quaternion} from "./Quaternion";
+import {Vec2f} from "./Vec2f";
 export class Vec3f {
 
     x:number;
@@ -13,6 +14,16 @@ export class Vec3f {
 
     private _isThis(value:any):boolean {
         return value instanceof Object || value instanceof Vec3f;
+    }
+
+    get xy():Vec2f {
+        return new Vec2f(this.x, this.y);
+    }
+    get xz():Vec2f {
+        return new Vec2f(this.x, this.z);
+    }
+    get yz():Vec2f {
+        return new Vec2f(this.y, this.z);
     }
 
     toString():string {
@@ -67,6 +78,13 @@ export class Vec3f {
 
     divideNumber(f:number):Vec3f {
         return new Vec3f(this.x / f, this.y / f, this.z / f);
+    }
+
+    distance(v:Vec3f):number {
+        let dx = this.x - v.x;
+        let dy = this.y - v.y;
+        let dz = this.z - v.z;
+        return Math.sqrt(dx * dx + dy * dy+ dz * dz);
     }
 
     cross(v:Vec3f):Vec3f {

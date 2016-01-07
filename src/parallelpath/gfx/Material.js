@@ -10,13 +10,14 @@ System.register(["../util/math/Vec3f"], function(exports_1) {
             Material = (function () {
                 function Material() {
                     this.glossiness = 0;
+                    this.subsurfaceScatter = 2;
                 }
                 Material.cast = function (obj) {
                     var mat = new Material();
                     mat.material_type = obj.material_type;
-                    mat.color_ambient = obj.color_ambient ? new Vec3f_1.Vec3f().set(obj.color_ambient) : new Vec3f_1.Vec3f(1);
-                    mat.color_diffuse = obj.color_diffuse ? new Vec3f_1.Vec3f().set(obj.color_diffuse) : new Vec3f_1.Vec3f(1);
-                    mat.color_specular = obj.color_specular ? new Vec3f_1.Vec3f().set(obj.color_specular) : new Vec3f_1.Vec3f(0);
+                    mat.color_ambient = obj.color_ambient ? new Vec3f_1.Vec3f().setVec(obj.color_ambient) : new Vec3f_1.Vec3f(1);
+                    mat.color_diffuse = obj.color_diffuse ? new Vec3f_1.Vec3f().setVec(obj.color_diffuse) : new Vec3f_1.Vec3f(1);
+                    mat.color_specular = obj.color_specular ? new Vec3f_1.Vec3f().setVec(obj.color_specular) : new Vec3f_1.Vec3f(0);
                     mat.reflectivity = obj.reflectivity;
                     mat.refractivity = obj.refractivity;
                     mat.ior = obj.ior;
@@ -25,8 +26,8 @@ System.register(["../util/math/Vec3f"], function(exports_1) {
                     mat.fresnel = obj.fresnel;
                     mat.density = obj.density;
                     mat.glossiness = obj.glossiness;
-                    mat.emittance = obj.emittance ? new Vec3f_1.Vec3f().set(obj.emittance) : new Vec3f_1.Vec3f(0);
-                    mat.reflectance = obj.reflectance ? new Vec3f_1.Vec3f().set(obj.reflectance) : new Vec3f_1.Vec3f(1);
+                    mat.emittance = obj.emittance ? new Vec3f_1.Vec3f().setVec(obj.emittance) : new Vec3f_1.Vec3f(0);
+                    mat.reflectance = obj.reflectance ? new Vec3f_1.Vec3f().setVec(obj.reflectance) : new Vec3f_1.Vec3f(1);
                     return mat;
                 };
                 Material.prototype.getMaterialType = function () {

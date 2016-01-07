@@ -24,6 +24,7 @@ System.register([], function(exports_1) {
                     this.ctx.putImageData(this.image, 0, 0);
                 };
                 Display.prototype.render = function (_pixels) {
+                    this.ctx.clearRect(0, 0, this.image.width, this.image.height);
                     for (var y = 0; y < this.image.height; y++) {
                         for (var x = 0; x < this.image.width; x++) {
                             var index = ((y * (this.image.width * 3)) + (x * 3));

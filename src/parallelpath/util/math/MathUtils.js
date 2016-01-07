@@ -10,6 +10,18 @@ System.register(["./Vec3f"], function(exports_1) {
             MathUtils = (function () {
                 function MathUtils() {
                 }
+                MathUtils.mod = function (a, b) {
+                    return a % b;
+                };
+                MathUtils.dotVec2 = function (a, b) {
+                    return a.x * b.x + a.y * b.y;
+                };
+                MathUtils.dotVec3 = function (a, b) {
+                    return a.x * b.x + a.y * b.y + a.z * b.z;
+                };
+                MathUtils.fract = function (x) {
+                    return x - Math.floor(x);
+                };
                 MathUtils.toRadians = function (degree) {
                     return degree * Math.PI / 180;
                 };
@@ -63,6 +75,9 @@ System.register(["./Vec3f"], function(exports_1) {
                     else {
                         return MathUtils.smoothstep2(f, min, max);
                     }
+                };
+                MathUtils.mix = function (x, y, a) {
+                    return x + (y - x) * a;
                 };
                 return MathUtils;
             })();

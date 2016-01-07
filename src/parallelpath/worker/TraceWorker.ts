@@ -132,13 +132,12 @@ export class TraceWorker {
                         }
 
                         // Get the average color of the sample
-                        var sample_averaged:Vec3f = sample.divideNumber(Config.ss_amount);
+                        color = sample.divideNumber(Config.ss_amount);
 
                         // Add the averaged sample to the samples
-                        color = sample_averaged;
-                        color.x = this.samples[index] = this.samples[index] + sample_averaged.x;
-                        color.y = this.samples[index + 1] = this.samples[index] + sample_averaged.y;
-                        color.z = this.samples[index + 2] = this.samples[index] + sample_averaged.z;
+                        color.x = this.samples[index] = this.samples[index] + color.x;
+                        color.y = this.samples[index + 1] = this.samples[index + 1] + color.y;
+                        color.z = this.samples[index + 2] = this.samples[index + 2] + color.z;
 
                     } else {
                         ray_primary = Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
@@ -311,6 +310,7 @@ export class TraceWorker {
                 var BRDF:Vec3f = M.reflectance.scaleNumber((1.0 / Math.PI) * 2.0 * NdotRD);
                 var REFLECTED:Vec3f = TraceWorker.pathTrace(randomRay, scene, n + 1, weight);
                 color = color.add(BRDF.scale(REFLECTED));
+                //color = BRDF.scale(REFLECTED);
             }
         }
         else

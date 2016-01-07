@@ -1,4 +1,4 @@
-import {TraceWorker} from "../worker/TraceWorker";
+import {TraceWorker2} from "../worker/TraceWorker2";
 /**
  * Created by r3f on 4/1/2016.
  */
@@ -18,14 +18,14 @@ export class Thread{
         var self = this;
 
         this.instance.onmessage = function(event){
-            if(event.data == TraceWorker.INITED){
+            if(event.data == TraceWorker2.INITED){
                 self.initialized = true;
                 self.isTracing = false;
                 if(self.onInitComplete){
                     self.onInitComplete();
                 }
             }
-            if(event.data == TraceWorker.TRACED){
+            if(event.data == TraceWorker2.TRACED){
                 self.isTracing = false;
                 if(self.onTraceComplete){
                     self.onTraceComplete();
@@ -35,7 +35,7 @@ export class Thread{
     }
     trace():void {
         this.isTracing = true;
-        this.instance.postMessage(TraceWorker.TRACE);
+        this.instance.postMessage(TraceWorker2.TRACE);
     }
     sendCommand(message:string):void {
         this.instance.postMessage(message);

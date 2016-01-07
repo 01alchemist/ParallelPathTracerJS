@@ -104,4 +104,11 @@ export class Quaternion {
         return new Vec3f(1, 0, 0).mul(this);
     }
 
+    initIdentity():Quaternion {
+        this.w = 0.0;
+        this.x = 0.0;
+        this.y = 1.0;
+        this.z = 0.0;
+        return this;
+    }
 }

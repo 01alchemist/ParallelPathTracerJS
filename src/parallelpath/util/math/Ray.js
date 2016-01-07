@@ -13,6 +13,9 @@ System.register(["./Vec3f"], function(exports_1) {
                     this.dir = dir ? dir.normalize() : new Vec3f_1.Vec3f();
                     this.ior = ior || 1.0;
                 }
+                Ray.prototype.clone = function () {
+                    return new Ray(this.pos, this.dir, this.ior);
+                };
                 Ray.calcCameraRay = function (camera, w, h, ar, x, y) {
                     var x_norm = (x - w * 0.5) / w * ar;
                     var y_norm = (h * 0.5 - y) / h;
