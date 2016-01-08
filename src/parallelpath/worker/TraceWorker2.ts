@@ -164,8 +164,8 @@ export class TraceWorker2 {
 
                     var screen_index:number = ((y * (this.window_width * 3)) + (x * 3));
 
-                    //this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
-                    this.drawPixelVec3f(screen_index, color);
+                    this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
+                    //this.drawPixelVec3f(screen_index, color);
                     //this.drawPixelVec3f(x, y, TraceWorker2.traceColor(ray_primary, this.tracer.scene, 0));
 
                     if (Config.debug && x == this.xoffset || Config.debug && y == this.yoffset) {
