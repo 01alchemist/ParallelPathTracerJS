@@ -59,7 +59,7 @@ System.register(["./InputListener", "./util/Logger", "./util/TimeUtils"], functi
                 };
                 Engine.prototype.render = function () {
                     this.tracer.render();
-                    this.display.render(this.tracer.pixels);
+                    this.display.render(this.tracer.pixels, this.tracer.iteration);
                 };
                 return Engine;
             })();

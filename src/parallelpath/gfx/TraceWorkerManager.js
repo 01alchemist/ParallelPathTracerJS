@@ -14,6 +14,7 @@ System.register(["../util/Config", "./TraceJob"], function(exports_1) {
                 function TraceWorkerManager(tracer) {
                     this.tracer = tracer;
                     this.propertySize = 512;
+                    this.iteration = 0;
                     var width = Config_1.Config.window_width;
                     var height = Config_1.Config.window_height;
                     this.propertyMemory = new Uint8Array(new SharedArrayBuffer(this.propertySize));
@@ -70,6 +71,7 @@ System.register(["../util/Config", "./TraceJob"], function(exports_1) {
                         this.jobs.forEach(function (w) {
                             w.run();
                         });
+                        this.iteration += Config_1.Config.ss_amount;
                     }
                 };
                 TraceWorkerManager.prototype.workersFinished = function () {

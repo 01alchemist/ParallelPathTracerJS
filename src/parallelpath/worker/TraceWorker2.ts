@@ -120,6 +120,7 @@ export class TraceWorker2 {
         if (this.tracer != null) {
 
             var ray_primary:Ray;
+            var depth = Config.ss_amount;
 
             for (var y:number = this.yoffset; y < this.yoffset + this.height; y++) {
 
@@ -133,7 +134,7 @@ export class TraceWorker2 {
                     //ray_primary = Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
                     //TraceWorker2.initRay = ray_primary.clone();
                     // Do the path tracing
-                    var depth = 3;
+
                     var sample:Vec3f = Shader.COLOR_NULL;
                     //iteration
                     for(var i = 0; i < depth; i++) {
@@ -149,9 +150,9 @@ export class TraceWorker2 {
 
                     var sample_averaged:Vec3f = sample.divideNumber(Config.ss_amount);
 
-                    this.samples[index] = this.samples[index] + sample_averaged.x;
-                    this.samples[index+1] = this.samples[index+1] + sample_averaged.y;
-                    this.samples[index+2] = this.samples[index+2] + sample_averaged.z;
+                    this.samples[index] += sample_averaged.x;
+                    this.samples[index+1] += sample_averaged.y;
+                    this.samples[index+2] += sample_averaged.z;
 
                     // Add the averaged sample to the samples
                     color.x = this.samples[index];
@@ -164,8 +165,8 @@ export class TraceWorker2 {
 
                     var screen_index:number = ((y * (this.window_width * 3)) + (x * 3));
 
-                    this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
-                    //this.drawPixelVec3f(screen_index, color);
+                    //this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
+                    this.drawPixelVec3f(screen_index, color);
                     //this.drawPixelVec3f(x, y, TraceWorker2.traceColor(ray_primary, this.tracer.scene, 0));
 
                     if (Config.debug && x == this.xoffset || Config.debug && y == this.yoffset) {
@@ -176,7 +177,7 @@ export class TraceWorker2 {
         }
 
         //console.timeEnd("Traced");
-        this.samples_taken++;
+        this.samples_taken += depth;
         TraceWorker2.time++;
         this.finished = true;
     }
@@ -205,9 +206,9 @@ export class TraceWorker2 {
         var green:number = (color.y * 255.0);
         var blue:number = (color.z * 255.0);
 
-        this.pixelMemory[index] = red;
-        this.pixelMemory[index + 1] = green;
-        this.pixelMemory[index + 2] = blue;
+        this.pixelMemory[index] = red / this.samples_taken;
+        this.pixelMemory[index + 1] = green / this.samples_taken;
+        this.pixelMemory[index + 2] = blue / this.samples_taken;
     }
 
     drawPixelInt(index:number, color:number) {

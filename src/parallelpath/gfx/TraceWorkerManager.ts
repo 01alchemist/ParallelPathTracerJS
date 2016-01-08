@@ -22,6 +22,7 @@ export class TraceWorkerManager {
     private pixelMemory:Uint8ClampedArray;
 
     private jobs:Array<TraceJob>;
+    iteration:number=0;
 
     constructor(private tracer:Tracer) {
 
@@ -91,6 +92,7 @@ export class TraceWorkerManager {
             this.jobs.forEach(function (w:TraceJob) {
                 w.run();
             });
+            this.iteration += Config.ss_amount;
         }
     }
 

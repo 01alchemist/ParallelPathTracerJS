@@ -36,6 +36,13 @@ System.register(["./Camera", "./Scene", "../util/math/Vec3f", "./TraceWorkerMana
                     enumerable: true,
                     configurable: true
                 });
+                Object.defineProperty(Tracer.prototype, "iteration", {
+                    get: function () {
+                        return this.workerManager.iteration;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
                 Tracer.prototype.update = function (dt) {
                     this.scene.update(dt);
                     this.camera.update(dt);

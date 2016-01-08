@@ -27,6 +27,9 @@ export class Tracer {
     get pixels():Uint8Array{
         return this.workerManager.pixels;
     }
+    get iteration():number{
+        return this.workerManager.iteration;
+    }
     update(dt:number) {
         this.scene.update(dt);
         this.camera.update(dt);

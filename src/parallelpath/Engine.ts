@@ -87,7 +87,7 @@ export class Engine
 	render():void
 	{
         this.tracer.render();
-        this.display.render(this.tracer.pixels);
+        this.display.render(this.tracer.pixels, this.tracer.iteration);
 	}
 
 }

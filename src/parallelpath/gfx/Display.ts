@@ -43,7 +43,7 @@ export class Display {
         this.ctx.putImageData(this.image, 0, 0);
     }
 
-    public render(_pixels):void {
+    public render(_pixels, iteration:number):void {
 
         //this.glView.render();
         //var proxy = this.image.data;
