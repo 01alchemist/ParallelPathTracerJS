@@ -23,7 +23,7 @@ export class Sphere extends Primitive
         let b:number;
         let d:number;
 
-		SP = this.vertices[0].sub(r.pos);
+		SP = this.vertices[0].sub(r.origin);
 		b = SP.dot(r.dir);
 		d = b * b - SP.dot(SP) + this.radius * this.radius;
 
@@ -37,7 +37,7 @@ export class Sphere extends Primitive
 			return null;
 
         let x:Intersection = new Intersection();
-		x.setPos(r.pos.add(r.dir.scaleNumber(t)));
+		x.setPos(r.origin.add(r.dir.scaleNumber(t)));
 		x.setNorm(x.pos.sub(this.vertices[0]).divideNumber(this.radius));
 		x.setT(t);
 

@@ -1,5 +1,5 @@
-System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math/Plane", "../util/math/Sphere", "../gfx/Camera", "../gfx/Material"], function(exports_1) {
-    var gfx_1, util_1, Shader_1, Plane_1, Sphere_1, Camera_1, Material_1;
+System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math/Plane", "../util/math/Sphere", "../gfx/Camera", "../gfx/Material", "../util/math/Vec2f", "../util/math/Mat4f"], function(exports_1) {
+    var gfx_1, util_1, Shader_1, Plane_1, Sphere_1, Camera_1, Material_1, Vec2f_1, Mat4f_1;
     var TraceWorker;
     return {
         setters:[
@@ -23,10 +23,25 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
             },
             function (Material_1_1) {
                 Material_1 = Material_1_1;
+            },
+            function (Vec2f_1_1) {
+                Vec2f_1 = Vec2f_1_1;
+            },
+            function (Mat4f_1_1) {
+                Mat4f_1 = Mat4f_1_1;
             }],
         execute: function() {
             TraceWorker = (function () {
                 function TraceWorker() {
+                    this.time = 1;
+                    this.samples_taken = 1;
+                    this.SSAA = 0;
+                    console.log("v2");
+                    this.eye = new util_1.Vec3f();
+                    this.center = new util_1.Vec3f();
+                    this.invMP = new Mat4f_1.Mat4f();
+                    this.r1_scale = new util_1.Vec3f(12.9898, 78.233, 151.7182);
+                    this.r2_scale = new util_1.Vec3f(63.7264, 10.873, 623.6736);
                     var self = this;
                     addEventListener('message', function (e) {
                         if (self.command == null) {
@@ -56,8 +71,13 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                         else if (self.command == TraceWorker.TRACE) {
                             self.command = null;
                             self.ar = e.data.ar;
-                            self.tracer.camera.rot.setFromQuaternion(e.data.rot);
-                            self.tracer.camera.pos.setVec(e.data.pos);
+                            self.eye.setVec(e.data.eye);
+                            self.center.setVec(e.data.center);
+                            self.invMP.m = e.data.invMP;
+                            self.iterations = e.data.iterations;
+                            if (self.iterations == 0) {
+                                self.clear();
+                            }
                             self.run();
                             postMessage(TraceWorker.TRACED);
                         }
@@ -72,44 +92,66 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     this.finished = true;
                     this.samples = new Uint8ClampedArray(width * height * 3);
                     this.samples_taken = 1;
+                    console.log("inited");
+                };
+                TraceWorker.prototype.clear = function () {
+                    this.samples = new Uint8ClampedArray(this.width * this.height * 3);
+                    this.samples_taken = 1;
+                    console.log("cleared");
                 };
                 TraceWorker.prototype.run = function () {
                     this.finished = false;
                     if (this.tracer != null) {
-                        var ray_primary = new util_1.Ray();
+                        var ray_primary;
+                        var depth = util_1.Config.ss_amount;
+                        var w = this.width;
+                        var h = this.height;
+                        var i = 0;
+                        var color;
                         for (var y = this.yoffset; y < this.yoffset + this.height; y++) {
                             for (var x = this.xoffset; x < this.xoffset + this.width; x++) {
+                                var InitRay = new util_1.Vec3f();
+                                var r = util_1.Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
+                                InitRay = r.dir;
+                                TraceWorker.initRay = InitRay;
+                                var t = (0.0 - this.eye.z) / r.dir.z;
+                                var InitPixel = r.origin.add(r.dir.scaleNumber(t));
+                                var r1 = Math.sin(TraceWorker.getrandom(r.dir.scale(this.r1_scale), this.time));
+                                var r2 = Math.cos(TraceWorker.getrandom(r.dir.scale(this.r2_scale), this.time + 1.0));
+                                if (this.SSAA > 0) {
+                                    var u = r1 / 2.0 / this.width;
+                                    var v = r2 / 2.0 / this.height;
+                                    InitPixel.x += u;
+                                    InitPixel.y += v;
+                                    InitPixel.z += 0;
+                                    r.dir = InitPixel.sub(this.eye).normalize();
+                                }
+                                r.ior = 1.0;
+                                var finalCol = new util_1.Vec3f(0.0);
+                                this.pathTrace(r, 1, finalCol);
                                 var _x = x - this.xoffset;
                                 var _y = y - this.yoffset;
-                                var index = ((_y * (this.width * 3)) + (_x * 3));
-                                var color;
-                                if (util_1.Config.ss_enabled) {
-                                    var sample = Shader_1.Shader.COLOR_NULL;
-                                    for (var i = 0; i < util_1.Config.ss_amount; i++) {
-                                        var ray = util_1.Ray.calcSupersampledCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y, util_1.Config.ss_jitter);
-                                        sample = sample.add(TraceWorker.pathTrace(ray, this.tracer.scene, 0, 1.0));
-                                    }
-                                    color = sample.divideNumber(util_1.Config.ss_amount);
-                                    color.x = this.samples[index] = this.samples[index] + color.x;
-                                    color.y = this.samples[index + 1] = this.samples[index + 1] + color.y;
-                                    color.z = this.samples[index + 2] = this.samples[index + 2] + color.z;
-                                }
-                                else {
-                                    ray_primary = util_1.Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
-                                    color = TraceWorker.pathTrace(ray_primary, this.tracer.scene, 0, 1.0);
-                                    color.x = this.samples[index] = this.samples[index] + color.x;
-                                    color.y = this.samples[index + 1] = this.samples[index] + color.y;
-                                    color.z = this.samples[index + 2] = this.samples[index] + color.z;
-                                }
+                                var index = ((_y * (w * 3)) + (_x * 3));
+                                this.samples[index] += finalCol.x;
+                                this.samples[index + 1] += finalCol.y;
+                                this.samples[index + 2] += finalCol.z;
+                                finalCol.x = util_1.MathUtils.mix(finalCol.x / 5.0, this.samples[index], this.iterations / (1.0 + this.iterations));
+                                finalCol.y = util_1.MathUtils.mix(finalCol.y / 5.0, this.samples[index + 1], this.iterations / (1.0 + this.iterations));
+                                finalCol.z = util_1.MathUtils.mix(finalCol.z / 5.0, this.samples[index + 2], this.iterations / (1.0 + this.iterations));
+                                finalCol.x = this.samples[index] / this.iterations;
+                                finalCol.y = this.samples[index + 1] / this.iterations;
+                                finalCol.z = this.samples[index + 2] / this.iterations;
                                 var screen_index = ((y * (this.window_width * 3)) + (x * 3));
-                                this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
+                                this.drawPixelVec3f(screen_index, finalCol);
+                                this.samples_taken++;
                                 if (util_1.Config.debug && x == this.xoffset || util_1.Config.debug && y == this.yoffset) {
                                     this.drawPixelInt(screen_index, 0xFFFF00F);
                                 }
                             }
                         }
                     }
-                    this.samples_taken++;
+                    this.iterations++;
+                    this.time++;
                     this.finished = true;
                 };
                 TraceWorker.prototype.drawPixelVec3fAveraged = function (index, color, factor) {
@@ -121,16 +163,13 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     this.pixelMemory[index + 1] = green;
                     this.pixelMemory[index + 2] = blue;
                 };
-                TraceWorker.prototype.drawPixelVec3f = function (x, y, color) {
-                    color = util_1.MathUtils.smoothstep(util_1.MathUtils.clamp(color, 0.0, 1.0), 0.0, 1.0);
-                    var index = ((y * (this.window_width * 3)) + (x * 3));
+                TraceWorker.prototype.drawPixelVec3f = function (index, color) {
                     var red = (color.x * 255.0);
                     var green = (color.y * 255.0);
                     var blue = (color.z * 255.0);
                     this.pixelMemory[index] = red;
                     this.pixelMemory[index + 1] = green;
                     this.pixelMemory[index + 2] = blue;
-                    this.pixelMemory[index + 3] = 255;
                 };
                 TraceWorker.prototype.drawPixelInt = function (index, color) {
                     var red = (color >> 16) & 255;
@@ -140,82 +179,199 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                     this.pixelMemory[index + 1] = green;
                     this.pixelMemory[index + 2] = blue;
                 };
-                TraceWorker.pathTrace = function (ray, scene, n, weight) {
-                    if (n > util_1.Config.recursion_max) {
-                        return Shader_1.Shader.COLOR_WHITE;
-                    }
+                TraceWorker.prototype.pathTrace = function (ray, rayDepth, color) {
+                    var colorMask = new util_1.Vec3f(1);
+                    var incidentIOR = 1.0;
+                    var transmittedIOR = 1.0;
+                    var internalReflection = false;
+                    var reflective = false;
+                    var refractive = false;
+                    var shift = 0.01;
                     var xInit = null;
                     var xFinal = null;
                     var xObject = null;
                     var tInit = Number.MAX_VALUE;
-                    scene.objects.forEach(function (obj) {
-                        obj.primitives.forEach(function (primitive) {
-                            xInit = primitive.intersect(ray);
-                            if (xInit != null && xInit.getT() < tInit) {
-                                xFinal = xInit;
-                                tInit = xFinal.getT();
-                                xObject = obj;
-                            }
+                    var depth = 5;
+                    for (var i = 0; i < depth; i++) {
+                        xFinal = null;
+                        var seed = this.time + i;
+                        this.tracer.scene.objects.forEach(function (obj) {
+                            obj.primitives.forEach(function (primitive) {
+                                xInit = primitive.intersect(ray);
+                                if (xInit != null && xInit.getT() < tInit) {
+                                    xFinal = xInit;
+                                    tInit = xFinal.getT();
+                                    xObject = obj;
+                                }
+                            });
                         });
-                    });
-                    if (xFinal == null)
-                        return Shader_1.Shader.COLOR_RED;
-                    if (xObject.material.emittance.length() > 0.0 && xFinal.getT() > util_1.Config.epsilon) {
-                        return xObject.material.emittance.scaleNumber(weight);
-                    }
-                    var M = xObject.material;
-                    var P = xFinal.pos;
-                    var N = xFinal.norm;
-                    var RO = ray.pos;
-                    var RD = ray.dir;
-                    var color = new util_1.Vec3f();
-                    var Kd = M.reflectance.length();
-                    var Ks = M.reflectivity;
-                    var Pp = Kd / (Kd + Ks);
-                    var Pr = Math.random();
-                    if (M.refractivity > 0.0) {
-                        weight *= M.refractivity;
-                        var NdotI = RD.dot(N), IOR, n1, n2, fresnel;
-                        var refractedRay;
-                        if (NdotI > 0.0) {
-                            n1 = ray.ior;
-                            n2 = M.ior;
-                            N = N.negate();
+                        if (xFinal == null) {
+                            color.setVec(Shader_1.Shader.COLOR_NULL);
+                            return color;
+                        }
+                        if (xObject.material.emittance.length() > 0.0) {
+                            color.setVec(xObject.material.emittance);
+                            return color;
+                        }
+                        var material = xObject.material;
+                        var P = xFinal.pos;
+                        var N = xFinal.norm;
+                        var RO = ray.origin;
+                        var RD = ray.dir;
+                        var Kd = material.reflectance.length();
+                        var Ks = material.reflectivity;
+                        var Pp = Kd / (Kd + Ks);
+                        var Pr = Math.random();
+                        var intersect = xFinal;
+                        if (material.refractivity == 0 && material.reflectivity == 0) {
+                            colorMask = colorMask.scale(material.color_diffuse);
+                            color.setVec(colorMask);
+                            var randomnum = TraceWorker.rand(intersect.pos.xy);
+                            ray.dir = TraceWorker.calculateRandomDirectionInHemisphere(seed + randomnum, intersect.norm).normalize();
+                            ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
                         }
                         else {
-                            n1 = M.ior;
-                            n2 = ray.ior;
-                            NdotI = -NdotI;
+                            var isInsideOut = ray.dir.dot(intersect.norm) > 0.0;
+                            if (material.refractivity > 0.0) {
+                                var random = new util_1.Vec3f(TraceWorker.rand(intersect.pos.xy), TraceWorker.rand(intersect.pos.xz), TraceWorker.rand(intersect.pos.yz));
+                                var oldIOR = ray.ior;
+                                var newIOR = material.ior;
+                                var fresnel;
+                                var reflect_range = -1.0;
+                                var IOR12 = oldIOR / newIOR;
+                                var NdotI = ray.dir.dot(xFinal.norm);
+                                var cos_t = IOR12 * IOR12 * (1.0 - NdotI * NdotI);
+                                var reflectR = ray.dir.reflect(intersect.norm);
+                                var refractR = ray.dir.refract(intersect.norm, IOR12, NdotI, cos_t);
+                                fresnel = TraceWorker.calculateFresnel(intersect.norm, ray.dir, oldIOR, newIOR);
+                                reflect_range = fresnel.reflectionCoefficient;
+                                var randomnum = TraceWorker.getrandom(random, seed);
+                                if (randomnum < reflect_range) {
+                                    ray.dir = reflectR;
+                                    ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+                                    if (material.subsurfaceScatter > 0) {
+                                        var _random = TraceWorker.rand(intersect.pos.xy);
+                                        var scatterColor = TraceWorker.subScatterFS(intersect, material.color_diffuse, _random);
+                                        colorMask = colorMask.scale(scatterColor);
+                                    }
+                                }
+                                else {
+                                    ray.dir = refractR;
+                                    ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+                                }
+                                if (!isInsideOut) {
+                                    ray.ior = newIOR;
+                                }
+                                else {
+                                    ray.ior = 1.0;
+                                }
+                                colorMask = colorMask.scale(material.color_diffuse);
+                                color.setVec(colorMask);
+                            }
+                            else if (material.reflectivity > 0.0) {
+                                if (material.subsurfaceScatter > 0) {
+                                    var _random = TraceWorker.rand(intersect.pos.xy);
+                                    colorMask = colorMask.scale(TraceWorker.subScatterFS(intersect, material.color_diffuse, _random));
+                                }
+                                colorMask = colorMask.scale(material.color_diffuse);
+                                color.setVec(colorMask);
+                                ray.ior = 1.0;
+                                ray.dir = ray.dir.reflect(intersect.norm);
+                                ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+                            }
+                            else {
+                            }
                         }
-                        IOR = n2 / n1;
-                        var cos_t = IOR * IOR * (1.0 - NdotI * NdotI);
-                        cos_t = Math.sqrt(1.0 - cos_t);
-                        fresnel = (Math.sqrt((n1 * NdotI - n2 * cos_t) / (n1 * NdotI + n2 * cos_t)) + Math.sqrt((n2 * NdotI - n1 * cos_t) / (n2 * NdotI + n1 * cos_t))) * 0.5;
-                        if (Math.random() <= fresnel) {
-                            refractedRay = new util_1.Ray(P, RD.reflect(N).normalize());
-                        }
-                        else {
-                            refractedRay = new util_1.Ray(P, RD.refract(N, IOR, NdotI, cos_t).normalize());
-                        }
-                        color = color.add(TraceWorker.pathTrace(refractedRay, scene, n + 1, weight));
                     }
-                    if (Pr < Pp && Kd + Ks != 0.0) {
-                        if (M.reflectance.length() > 0.0) {
-                            var randomRay = new util_1.Ray(P, N.randomHemisphere());
-                            var NdotRD = Math.abs(N.dot(randomRay.dir));
-                            var BRDF = M.reflectance.scaleNumber((1.0 / Math.PI) * 2.0 * NdotRD);
-                            var REFLECTED = TraceWorker.pathTrace(randomRay, scene, n + 1, weight);
-                            color = color.add(BRDF.scale(REFLECTED));
-                        }
+                };
+                TraceWorker.rand = function (co) {
+                    var a = 12.9898;
+                    var b = 78.233;
+                    var c = 43758.5453;
+                    var dt = util_1.MathUtils.dotVec2(co, new Vec2f_1.Vec2f(a, b));
+                    var sn = util_1.MathUtils.mod(dt, 3.14);
+                    return util_1.MathUtils.fract(Math.sin(sn) * c);
+                };
+                TraceWorker.getrandom = function (noise, seed) {
+                    return util_1.MathUtils.fract(Math.sin(util_1.MathUtils.dotVec3(TraceWorker.initRay.addNumber(seed), noise)) * 43758.5453 + seed);
+                };
+                TraceWorker.calculateRandomDirectionInHemisphere = function (seed, normal) {
+                    var u = TraceWorker.getrandom(new util_1.Vec3f(12.9898, 78.233, 151.7182), seed);
+                    var v = TraceWorker.getrandom(new util_1.Vec3f(63.7264, 10.873, 623.6736), seed);
+                    var up = Math.sqrt(u);
+                    var over = Math.sqrt(1.0 - up * up);
+                    var around = v * 3.141592 * 2.0;
+                    var directionNotNormal;
+                    if (Math.abs(normal.x) < 0.577350269189) {
+                        directionNotNormal = new util_1.Vec3f(1, 0, 0);
+                    }
+                    else if (Math.abs(normal.y) < 0.577350269189) {
+                        directionNotNormal = new util_1.Vec3f(0, 1, 0);
                     }
                     else {
-                        if (M.reflectivity > 0.0) {
-                            weight *= M.reflectivity;
-                            var reflectedRay = new util_1.Ray(P, RD.reflect(N).normalize());
-                            color = color.add(TraceWorker.pathTrace(reflectedRay, scene, n + 1, weight));
-                        }
+                        directionNotNormal = new util_1.Vec3f(0, 0, 1);
                     }
-                    return color;
+                    var perpendicularDirection1 = normal.cross(directionNotNormal).normalize();
+                    var perpendicularDirection2 = normal.cross(perpendicularDirection1).normalize();
+                    return normal.scaleNumber(up).add(perpendicularDirection1.scaleNumber(Math.cos(around) * over)).add(perpendicularDirection2.scaleNumber(Math.sin(around) * over));
+                };
+                TraceWorker.calculateFresnel = function (normal, incident, incidentIOR, transmittedIOR) {
+                    var fresnel = {
+                        reflectionCoefficient: 0,
+                        transmissionCoefficient: 0
+                    };
+                    incident = incident.normalize();
+                    normal = normal.normalize();
+                    var cosThetaI = Math.abs(normal.dot(incident));
+                    var sinIncidence = Math.sqrt(1.0 - Math.pow(cosThetaI, 2.0));
+                    var cosThetaT = Math.sqrt(1.0 - Math.pow(((incidentIOR / transmittedIOR) * sinIncidence), 2.0));
+                    if (cosThetaT <= 0.0) {
+                        fresnel.reflectionCoefficient = 1.0;
+                        fresnel.transmissionCoefficient = 0.0;
+                        return fresnel;
+                    }
+                    else {
+                        var RsP = Math.pow((incidentIOR * cosThetaI - transmittedIOR * cosThetaT) / (incidentIOR * cosThetaI + transmittedIOR * cosThetaT), 2.0);
+                        var RpP = Math.pow((incidentIOR * cosThetaT - transmittedIOR * cosThetaI) / (incidentIOR * cosThetaT + transmittedIOR * cosThetaI), 2.0);
+                        fresnel.reflectionCoefficient = (RsP + RpP) / 2.0;
+                        fresnel.transmissionCoefficient = 1.0 - fresnel.reflectionCoefficient;
+                        return fresnel;
+                    }
+                };
+                TraceWorker.subScatterFS = function (intersect, color, seed) {
+                    var RimScalar = 1.0;
+                    var MaterialThickness = 0.5;
+                    var ExtinctionCoefficient = new util_1.Vec3f(1.0, 1.0, 1.0);
+                    var SpecColor = new util_1.Vec3f(1.0, 1.0, 1.0);
+                    var lightPoint = new util_1.Vec3f(0.0, 5.0, 0.0);
+                    var attenuation = 10.0 * (1.0 / lightPoint.distance(intersect.pos));
+                    var eVec = intersect.pos.normalize();
+                    var lVec = lightPoint.sub(intersect.pos).normalize();
+                    var wNorm = intersect.norm.normalize();
+                    var dotLN = new util_1.Vec3f(TraceWorker.halfLambert(lVec, wNorm) * attenuation);
+                    dotLN = dotLN.scale(color);
+                    var indirectLightComponent = new util_1.Vec3f(MaterialThickness * Math.max(0.0, lVec.dot(wNorm.negate())));
+                    indirectLightComponent.addNumber(MaterialThickness * TraceWorker.halfLambert(eVec.negate(), lVec));
+                    indirectLightComponent.scaleNumber(attenuation);
+                    indirectLightComponent.x *= ExtinctionCoefficient.x;
+                    indirectLightComponent.y *= ExtinctionCoefficient.y;
+                    indirectLightComponent.z *= ExtinctionCoefficient.z;
+                    var rim = new util_1.Vec3f(1.0 - Math.max(0.0, wNorm.dot(eVec)));
+                    rim = rim.scale(rim);
+                    rim = SpecColor.scale(rim.scaleNumber(Math.max(0.0, wNorm.dot(lVec))));
+                    var finalCol = dotLN.add(indirectLightComponent);
+                    finalCol.add(rim.scaleNumber(RimScalar * attenuation));
+                    var SpecularPower = 15.0;
+                    finalCol = finalCol.add(SpecColor.scaleNumber(TraceWorker.blinnPhongSpecular(wNorm, lVec, SpecularPower) * attenuation * 0.1));
+                    return finalCol;
+                };
+                TraceWorker.blinnPhongSpecular = function (normalVec, lightVec, specPower) {
+                    var halfAngle = normalVec.add(lightVec).normalize();
+                    return Math.pow(util_1.MathUtils.clamp2(0.0, 1.0, normalVec.dot(halfAngle)), specPower);
+                };
+                TraceWorker.halfLambert = function (vect1, vect2) {
+                    var product = vect1.dot(vect2);
+                    return product * 0.5 + 0.5;
                 };
                 TraceWorker.prototype.getWidth = function () {
                     return this.width;
@@ -239,6 +395,7 @@ System.register(["../gfx/gfx", "../util/util", "../shader/Shader", "../util/math
                 TraceWorker.INITED = "INITED";
                 TraceWorker.TRACE = "TRACE";
                 TraceWorker.TRACED = "TRACED";
+                TraceWorker.interval = 0;
                 return TraceWorker;
             })();
             exports_1("TraceWorker", TraceWorker);

@@ -83,7 +83,7 @@ export class MathUtils {
         }
     }
 
-    static mix(x:number, y:number, a:number):number {
-        return x + (y - x) * a;
+    static mix(v1:number, v2:number, a:number):number {
+        return v1 + (v2 - v1) * a;
     }
 }

@@ -3,7 +3,6 @@ import {TraceJob} from "./TraceJob";
 import {Thread} from "../cpu/Thread";
 import {Display} from "./Display";
 import {Tracer} from "./Tracer";
-import {TraceWorker} from "../worker/TraceWorker";
 /**
  * Created by r3f on 4/1/2016.
  */
@@ -22,7 +21,7 @@ export class TraceWorkerManager {
     private pixelMemory:Uint8ClampedArray;
 
     private jobs:Array<TraceJob>;
-    iteration:number=0;
+    iterations:number=0;
 
     constructor(private tracer:Tracer) {
 
@@ -92,7 +91,7 @@ export class TraceWorkerManager {
             this.jobs.forEach(function (w:TraceJob) {
                 w.run();
             });
-            this.iteration += Config.ss_amount;
+            this.iterations += Config.ss_amount;
         }
     }
 

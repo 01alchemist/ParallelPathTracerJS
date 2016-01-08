@@ -1,7 +1,11 @@
-System.register([], function(exports_1) {
+System.register(["./util/math/Mat4f"], function(exports_1) {
+    var Mat4f_1;
     var InputListener;
     return {
-        setters:[],
+        setters:[
+            function (Mat4f_1_1) {
+                Mat4f_1 = Mat4f_1_1;
+            }],
         execute: function() {
             InputListener = (function () {
                 function InputListener() {
@@ -12,6 +16,83 @@ System.register([], function(exports_1) {
                         InputListener.keyReleased(event);
                     };
                 }
+                InputListener.prototype.register = function (display, tracer) {
+                    display.canvas.onmousedown = handleMouseDown;
+                    display.canvas.oncontextmenu = function (ev) {
+                        return false;
+                    };
+                    document.onmouseup = handleMouseUp;
+                    document.onmousemove = handleMouseMove;
+                    var mouseLeftDown = false;
+                    var mouseRightDown = false;
+                    var mouseMidDown = false;
+                    var lastMouseX = null;
+                    var lastMouseY = null;
+                    var pause = false;
+                    function handleMouseDown(event) {
+                        if (event.button == 2) {
+                            mouseLeftDown = false;
+                            mouseRightDown = true;
+                            mouseMidDown = false;
+                        }
+                        else if (event.button == 0) {
+                            mouseLeftDown = true;
+                            mouseRightDown = false;
+                            mouseMidDown = false;
+                        }
+                        else if (event.button == 1) {
+                            mouseLeftDown = false;
+                            mouseRightDown = false;
+                            mouseMidDown = true;
+                        }
+                        lastMouseX = event.clientX;
+                        lastMouseY = event.clientY;
+                    }
+                    function handleMouseUp(event) {
+                        mouseLeftDown = false;
+                        mouseRightDown = false;
+                        mouseMidDown = false;
+                    }
+                    function handleMouseMove(event) {
+                        if (!(mouseLeftDown || mouseRightDown || mouseMidDown)) {
+                            return;
+                        }
+                        var newX = event.clientX;
+                        var newY = event.clientY;
+                        var deltaX = newX - lastMouseX;
+                        var deltaY = newY - lastMouseY;
+                        if (mouseLeftDown) {
+                            tracer.angleY -= deltaX * 0.01;
+                            tracer.angleX += deltaY * 0.01;
+                            tracer.angleX = Math.max(tracer.angleX, -Math.PI / 2 + 0.01);
+                            tracer.angleX = Math.min(tracer.angleX, Math.PI / 2 - 0.01);
+                            tracer.eye.x = tracer.zoomZ * Math.sin(tracer.angleY) * Math.cos(tracer.angleX);
+                            tracer.eye.y = tracer.zoomZ * Math.sin(tracer.angleX);
+                            tracer.eye.z = tracer.zoomZ * Math.cos(tracer.angleY) * Math.cos(tracer.angleX);
+                        }
+                        else if (mouseRightDown) {
+                            tracer.zoomZ += 0.01 * deltaY;
+                            tracer.zoomZ = Math.min(Math.max(tracer.zoomZ, 4.0), 20.0);
+                            tracer.eye.x = tracer.zoomZ * Math.sin(tracer.angleY) * Math.cos(tracer.angleX);
+                            tracer.eye.y = tracer.zoomZ * Math.sin(tracer.angleX);
+                            tracer.eye.z = tracer.zoomZ * Math.cos(tracer.angleY) * Math.cos(tracer.angleX);
+                        }
+                        else if (mouseMidDown) {
+                            tracer.center.x -= 0.01 * deltaX;
+                            tracer.center.y += 0.01 * deltaY;
+                            tracer.eye.x -= 0.01 * deltaX;
+                            tracer.eye.y += 0.01 * deltaY;
+                        }
+                        lastMouseX = newX;
+                        lastMouseY = newY;
+                        var modelview = new Mat4f_1.Mat4f().lookAt([tracer.eye.x, tracer.eye.y, tracer.eye.z], [tracer.center.x, tracer.center.y, tracer.center.z], [tracer.up.x, tracer.up.y, tracer.up.z]);
+                        var projection = new Mat4f_1.Mat4f().perspective(tracer.FOVY, display.width / display.height, 0.1, 100.0, true);
+                        var modelviewprojection = projection.multiply(modelview);
+                        var inversemp = modelviewprojection.inverse();
+                        tracer.invMP = inversemp;
+                        tracer.iterations = 0;
+                    }
+                };
                 InputListener.keyTyped = function (e) {
                 };
                 InputListener.keyPressed = function (e) {

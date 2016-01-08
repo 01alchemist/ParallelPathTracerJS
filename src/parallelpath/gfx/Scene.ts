@@ -24,10 +24,12 @@ export class Scene
 
 		var mat_diffuse_white = new DiffuseMaterial(new Vec3f(1,1,1));
 		var mat_diffuse_blue = new DiffuseMaterial(new Vec3f(0,0,1));
+		var mat_diffuse_red = new DiffuseMaterial(new Vec3f(1,0,0));
+		var mat_diffuse_green = new DiffuseMaterial(new Vec3f(0,1,0));
 		var mat_refractive_glass = new GlassMaterial(new Vec3f(0.0), 0.0, 1.0, 1.52, 0.0);
 		var mat_mirror = new GlassMaterial(new Vec3f(0.0, 1.0, 0.0), 1.0, 0.0, 1.0, 0.0);
-		var mat_light_white = new EmissiveMaterial(new Vec3f(1,1,1), new Vec3f(0.0));
-		var mat_light_red = new EmissiveMaterial(new Vec3f(1,0,0), new Vec3f(0.0));
+		var mat_light_white = new EmissiveMaterial(new Vec3f(3), new Vec3f(1,0,0));
+		var mat_light_red = new EmissiveMaterial(new Vec3f(5,0,0), new Vec3f(0.0));
 
 		/*var plane_floor = new Plane(new Vec3f(0.0, 0.0, 0.0), new Vec3f(0.0, 1.0, 0.0));
 		var plane_ceiling = new Plane(new Vec3f(0.0, 4.0, 0.0), new Vec3f(0.0, -1.0, 0.0));
@@ -76,14 +78,14 @@ export class Scene
 		var refractive_glass:Material = new CookTorranceMaterial(new Vec3f(0.01), new Vec3f(0.0, 0.0, 0.0), new Vec3f(1.0), 0.10, 1.0, 0.5, 0.0, 1.0, 1.52);
 		var refractive_glass:Material = new GlassMaterial(new Vec3f(0.0), 0.0, 1.0, 1.52, 0.0);*/
 
-		this.objects.push(new TracerObject(new Vec3f(0.0, 0.0, 0.0), new Vec3f(0.0, 1.0, 0.0), mat_diffuse_white));
-		this.objects.push(new TracerObject(new Vec3f(0.0, 5.0, 0.0), new Vec3f(0.0, -1.0, 0.0), mat_light_white));
-		this.objects.push(new TracerObject(new Vec3f(0.0, 0.0, -10.0), new Vec3f(0.0, 0.0, 1.0), mat_diffuse_white));
-		this.objects.push(new TracerObject(new Vec3f(4.0, 0.0, 0.0), new Vec3f(-1.0, 0.0, 0.0), mat_diffuse_white));
-		this.objects.push(new TracerObject(new Vec3f(-4.0, 0.0, 0.0), new Vec3f(1.0, 0.0, 0.0), mat_diffuse_white));
+		this.objects.push(new TracerObject(new Vec3f(0.0, 0.0, 0.0), new Vec3f(0.0, 1.0, 0.0), mat_diffuse_green));
+		this.objects.push(new TracerObject(new Vec3f(0.0, 5.0, 0.0), new Vec3f(0.0, -1.0, 0.0), mat_light_white));//top
+		this.objects.push(new TracerObject(new Vec3f(0.0, 0.0, -10.0), new Vec3f(0.0, 0.0, 1.0), mat_diffuse_green));
+		this.objects.push(new TracerObject(new Vec3f(4.0, 0.0, 0.0), new Vec3f(-1.0, 0.0, 0.0), mat_diffuse_green));
+		this.objects.push(new TracerObject(new Vec3f(-4.0, 0.0, 0.0), new Vec3f(1.0, 0.0, 0.0), mat_diffuse_green));
 
-		this.objects.push(new TracerObject(new Vec3f(1.0, 0.75, -4.0), 0.75, mat_diffuse_blue));
-		this.objects.push(new TracerObject(new Vec3f(-1.0, 0.75, -5.0), 0.75, mat_diffuse_blue));
+		this.objects.push(new TracerObject(new Vec3f(1.0, 0.75, -4.0), 0.75, mat_light_red));
+		this.objects.push(new TracerObject(new Vec3f(-1.0, 0.75, -5.0), 0.75, mat_diffuse_green));
 
 		//this.lights.push(new PointLight(new Vec3f(0.0, 4.0, -5.0), new Vec3f(1.0), 1.0, 0.0, 0.0, 0.1));
 	}

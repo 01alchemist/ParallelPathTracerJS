@@ -30,7 +30,7 @@ System.register([], function(exports_1) {
                 Config.recursion_max = 8;
                 Config.thread_amount = -1;
                 Config.epsilon = 1e-3;
-                Config.debug = true;
+                Config.debug = false;
                 Config.ss_enabled = false;
                 Config.ss_amount = 3;
                 Config.ss_jitter = 0.001;

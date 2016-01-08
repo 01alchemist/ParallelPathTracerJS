@@ -32,7 +32,7 @@ System.register(["./Primitive", "./Vec3f", "./Intersection", "../Config"], funct
                     var P;
                     var d;
                     var t;
-                    P = this.vertices[0].sub(r.pos);
+                    P = this.vertices[0].sub(r.origin);
                     d = this.normal.dot(r.dir);
                     if (d > 0.0)
                         return null;
@@ -40,7 +40,7 @@ System.register(["./Primitive", "./Vec3f", "./Intersection", "../Config"], funct
                     if (t < Config_1.Config.epsilon)
                         return null;
                     var x = new Intersection_1.Intersection();
-                    x.setPos(r.pos.add(r.dir.scaleNumber(t)));
+                    x.setPos(r.origin.add(r.dir.scaleNumber(t)));
                     x.setNorm(this.normal.normalize());
                     x.setT(t);
                     return x;

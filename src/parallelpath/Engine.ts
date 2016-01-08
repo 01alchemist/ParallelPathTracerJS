@@ -1,3 +1,4 @@
+///<reference path="InputListener.ts"/>
 import {Display} from "./gfx/Display";
 import {Tracer} from "./gfx/Tracer";
 import {InputListener} from "./InputListener";
@@ -16,12 +17,9 @@ export class Engine
     constructor(display:Display, tracer:Tracer)
 	{
 		this.display = display;
-		this.ilistener = new InputListener();
-		//this.display.addKeyListener(this.ilistener);
-		//this.display.addMouseListener(this.ilistener);
-		//this.display.addMouseMotionListener(this.ilistener);
-
-		this.tracer = tracer;
+        this.tracer = tracer;
+        this.ilistener = new InputListener();
+        this.ilistener.register(display, tracer);
 
 		this.log = new Logger('Engine');
 
@@ -62,8 +60,7 @@ export class Engine
                 "Workers: "+self.tracer.numWorkers+
                 " DeltaTime: "+TimeUtils.getDelta()+
                 " FPS: "+TimeUtils.getFPS()+"/s"+
-                " Eye: "+self.tracer.getCamera().getRot().toString()+
-                " Eye_length: "+self.tracer.getCamera().getRot().length()
+                " Iterations: "+self.tracer.iterations
             );
             self.update(TimeUtils.delta);
             self.render();
@@ -86,8 +83,10 @@ export class Engine
 
 	render():void
 	{
-        this.tracer.render();
-        this.display.render(this.tracer.pixels, this.tracer.iteration);
-	}
+        if(!this.display.paused){
+			this.tracer.render();
+            this.display.render(this.tracer.pixels, this.tracer.iterations);
+        }
+    }
 
 }

@@ -24,13 +24,6 @@ System.register(["./MathUtils", "./Vec3f"], function(exports_1) {
                     this.z = z == undefined ? 0 : z;
                     return this;
                 };
-                Quaternion.prototype.setFromQuaternion = function (q) {
-                    this.w = q.w;
-                    this.x = q.x;
-                    this.y = q.y;
-                    this.z = q.z;
-                    return this;
-                };
                 Quaternion.prototype._isThis = function (value) {
                     if (value instanceof Object || value instanceof Quaternion) {
                         if (value.w != undefined && value.x != undefined && value.y != undefined && value.z != undefined) {

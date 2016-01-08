@@ -5,12 +5,19 @@ System.register([], function(exports_1) {
         execute: function() {
             Display = (function () {
                 function Display(width, height, scale, title) {
+                    this.paused = true;
                     this.title = title;
                     this.width = width;
                     this.height = height;
                     this.scale = scale;
                 }
                 Display.prototype.create = function (pixels) {
+                    this.toggle = document.getElementById("toggle");
+                    var self = this;
+                    this.toggle.onclick = function () {
+                        self.paused = !self.paused;
+                        self.toggle.innerText = self.paused ? "start" : "stop";
+                    };
                     this.info = document.getElementById("info");
                     this.canvas = document.getElementById("viewport");
                     this.canvas.width = this.width;

@@ -23,13 +23,14 @@ export class Quaternion {
         return this;
     }
 
-    setFromQuaternion(q:Quaternion):Quaternion {
+    /*setFromQuaternion(q:Quaternion):Quaternion {
+        console.log(q);
         this.w = q.w;
         this.x = q.x;
         this.y = q.y;
         this.z = q.z;
         return this;
-    }
+    }*/
 
     private _isThis(value:any):boolean {
         if (value instanceof Object || value instanceof Quaternion) {

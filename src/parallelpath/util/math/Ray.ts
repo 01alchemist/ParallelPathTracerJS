@@ -4,24 +4,24 @@ import {Camera} from "../../gfx/Camera";
 export class Ray
 {
 
-	pos:Vec3f;
+	origin:Vec3f;
 	dir:Vec3f;
 	ior:number;
 
-    constructor(pos?:Vec3f, dir?:Vec3f, ior?:number)
+    constructor(origin?:Vec3f, dir?:Vec3f, ior?:number)
 	{
-		this.pos = pos || new Vec3f();
+		this.origin = origin || new Vec3f();
         this.dir = dir?dir.normalize():new Vec3f();
         this.ior = ior || 1.0;
 	}
 	clone():Ray{
-		return new Ray(this.pos, this.dir, this.ior);
+		return new Ray(this.origin, this.dir, this.ior);
 	}
 	static calcCameraRay(camera:Camera, w:number, h:number, ar:number, x:number, y:number):Ray
 	{
 		let x_norm:number = (x - w * 0.5) / w * ar;
         let y_norm:number = (h * 0.5 - y) / h;
-		
+
 		let forward:Vec3f = camera.getForward();
 		let up:Vec3f = camera.getUp();
 		let right:Vec3f = camera.getRight();
@@ -30,6 +30,18 @@ export class Ray
 		let ray_direction:Vec3f = image_point.sub(camera.pos);
 
 		return new Ray(camera.pos, ray_direction);
+	}
+	static calcCameraRayDirection(camera:Camera, w:number, h:number, ar:number, x:number, y:number):Vec3f
+	{
+		let x_norm:number = (x - w * 0.5) / w * ar;
+        let y_norm:number = (h * 0.5 - y) / h;
+
+		let forward:Vec3f = camera.getForward();
+		let up:Vec3f = camera.getUp();
+		let right:Vec3f = camera.getRight();
+
+		let image_point:Vec3f = right.scaleNumber(x_norm).add(up.scaleNumber(y_norm)).add(camera.pos.add(forward));
+		return image_point.sub(camera.pos);
 	}
 	static calcSupersampledCameraRay(camera:Camera, w:number, h:number, ar:number, x:number, y:number, jitter:number):Ray
 	{
@@ -51,24 +63,24 @@ export class Ray
 
 		return new Ray(camera.pos, ray_direction);
 	}
-	getPos():Vec3f
+	getorigin():Vec3f
 	{
-		return this.pos;
+		return this.origin;
 	}
 
 	getDir():Vec3f
 	{
 		return this.dir;
 	}
-	
+
 	getIOR():number
 	{
 		return this.ior;
 	}
 
-	setPos(pos:Vec3f):void
+	setorigin(origin:Vec3f):void
 	{
-		this.pos.setVec(pos);
+		this.origin.setVec(origin);
 	}
 
 	setDir(dir:Vec3f):void

@@ -7,17 +7,20 @@ export class Display {
     static serialVersionUID:number = 1;
 
     private title:string;
-    private width:number;
-    private height:number;
     private scale:number;
     private pixels:Uint8Array;
     private image;//:BufferedImage;
     private dimension;//:Dimension;
     private info;
-    private canvas;
     private ctx;
+    private toggle;
     private glView:WebGLView;
     private bufferstrategy;//:BufferStrategy;
+
+    canvas;
+    width:number;
+    height:number;
+    paused:boolean=true;
 
     constructor(width:number, height:number, scale:number, title:string) {
         this.title = title;
@@ -27,6 +30,13 @@ export class Display {
     }
 
     public create(pixels:Uint8Array):void {
+
+        this.toggle = document.getElementById("toggle");
+        var self = this;
+        this.toggle.onclick = function(){
+            self.paused = !self.paused;
+            self.toggle.innerText = self.paused?"start":"stop";
+        };
 
         this.info = document.getElementById("info");
         this.canvas = document.getElementById("viewport");

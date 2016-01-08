@@ -48,7 +48,13 @@ System.register(["../util/util", "../cpu/Thread", "../worker/TraceWorker"], func
                     if (this.thread.initialized && !this.thread.isTracing) {
                         this.finished = false;
                         this.thread.trace();
-                        this.thread.sendData({ ar: this.display.getAR(), rot: this.tracer.camera.rot, pos: this.tracer.camera.pos });
+                        this.thread.sendData({
+                            iterations: this.tracer.iterations,
+                            ar: this.display.getAR(),
+                            eye: this.tracer.eye,
+                            center: this.tracer.center,
+                            invMP: this.tracer.invMP.m
+                        });
                     }
                 };
                 TraceJob.prototype.getWidth = function () {

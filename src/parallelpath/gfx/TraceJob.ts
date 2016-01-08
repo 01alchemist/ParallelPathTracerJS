@@ -59,7 +59,13 @@ export class TraceJob {
             this.finished = false;
             //console.time("TRACE_"+this.id);
             this.thread.trace();
-            this.thread.sendData({ar: this.display.getAR(), rot:this.tracer.camera.rot, pos:this.tracer.camera.pos});
+            this.thread.sendData({
+                iterations:this.tracer.iterations,
+                ar:this.display.getAR(),
+                eye:this.tracer.eye,
+                center:this.tracer.center,
+                invMP:this.tracer.invMP.m
+            });
         }
     }
 

@@ -19,7 +19,7 @@ export class Plane extends Primitive {
         var d:number;
         var t:number;
 
-        P = this.vertices[0].sub(r.pos);
+        P = this.vertices[0].sub(r.origin);
         d = this.normal.dot(r.dir);
 
         if (d > 0.0)
@@ -31,7 +31,7 @@ export class Plane extends Primitive {
             return null;
 
         var x:Intersection = new Intersection();
-        x.setPos(r.pos.add(r.dir.scaleNumber(t)));
+        x.setPos(r.origin.add(r.dir.scaleNumber(t)));
         x.setNorm(this.normal.normalize());
         x.setT(t);
 

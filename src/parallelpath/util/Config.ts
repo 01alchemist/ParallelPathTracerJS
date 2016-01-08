@@ -21,7 +21,7 @@ export class Config
 	static recursion_max:number = 8;
 	static thread_amount:number = -1;
     static epsilon:number = 1e-3;
-	static debug:boolean = true;
+	static debug:boolean = false;
 	static ss_enabled:boolean = false;
 	static ss_amount:number = 3;
 	static ss_jitter:number = 0.001;

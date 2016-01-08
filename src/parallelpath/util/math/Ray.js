@@ -8,13 +8,13 @@ System.register(["./Vec3f"], function(exports_1) {
             }],
         execute: function() {
             Ray = (function () {
-                function Ray(pos, dir, ior) {
-                    this.pos = pos || new Vec3f_1.Vec3f();
+                function Ray(origin, dir, ior) {
+                    this.origin = origin || new Vec3f_1.Vec3f();
                     this.dir = dir ? dir.normalize() : new Vec3f_1.Vec3f();
                     this.ior = ior || 1.0;
                 }
                 Ray.prototype.clone = function () {
-                    return new Ray(this.pos, this.dir, this.ior);
+                    return new Ray(this.origin, this.dir, this.ior);
                 };
                 Ray.calcCameraRay = function (camera, w, h, ar, x, y) {
                     var x_norm = (x - w * 0.5) / w * ar;
@@ -25,6 +25,15 @@ System.register(["./Vec3f"], function(exports_1) {
                     var image_point = right.scaleNumber(x_norm).add(up.scaleNumber(y_norm)).add(camera.pos.add(forward));
                     var ray_direction = image_point.sub(camera.pos);
                     return new Ray(camera.pos, ray_direction);
+                };
+                Ray.calcCameraRayDirection = function (camera, w, h, ar, x, y) {
+                    var x_norm = (x - w * 0.5) / w * ar;
+                    var y_norm = (h * 0.5 - y) / h;
+                    var forward = camera.getForward();
+                    var up = camera.getUp();
+                    var right = camera.getRight();
+                    var image_point = right.scaleNumber(x_norm).add(up.scaleNumber(y_norm)).add(camera.pos.add(forward));
+                    return image_point.sub(camera.pos);
                 };
                 Ray.calcSupersampledCameraRay = function (camera, w, h, ar, x, y, jitter) {
                     var x_norm = (x - w * 0.5) / w * ar;
@@ -37,8 +46,8 @@ System.register(["./Vec3f"], function(exports_1) {
                     var ray_direction = image_point.sub(camera.pos);
                     return new Ray(camera.pos, ray_direction);
                 };
-                Ray.prototype.getPos = function () {
-                    return this.pos;
+                Ray.prototype.getorigin = function () {
+                    return this.origin;
                 };
                 Ray.prototype.getDir = function () {
                     return this.dir;
@@ -46,8 +55,8 @@ System.register(["./Vec3f"], function(exports_1) {
                 Ray.prototype.getIOR = function () {
                     return this.ior;
                 };
-                Ray.prototype.setPos = function (pos) {
-                    this.pos.setVec(pos);
+                Ray.prototype.setorigin = function (origin) {
+                    this.origin.setVec(origin);
                 };
                 Ray.prototype.setDir = function (dir) {
                     this.dir.setVec(dir);

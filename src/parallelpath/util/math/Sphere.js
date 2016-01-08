@@ -33,7 +33,7 @@ System.register(["./Vec3f", "./Intersection", "../Config", "./Primitive"], funct
                     var t;
                     var b;
                     var d;
-                    SP = this.vertices[0].sub(r.pos);
+                    SP = this.vertices[0].sub(r.origin);
                     b = SP.dot(r.dir);
                     d = b * b - SP.dot(SP) + this.radius * this.radius;
                     if (d < 0.0)
@@ -43,7 +43,7 @@ System.register(["./Vec3f", "./Intersection", "../Config", "./Primitive"], funct
                     if (t == -1.0)
                         return null;
                     var x = new Intersection_1.Intersection();
-                    x.setPos(r.pos.add(r.dir.scaleNumber(t)));
+                    x.setPos(r.origin.add(r.dir.scaleNumber(t)));
                     x.setNorm(x.pos.sub(this.vertices[0]).divideNumber(this.radius));
                     x.setT(t);
                     return x;

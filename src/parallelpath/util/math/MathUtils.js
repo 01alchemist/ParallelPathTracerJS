@@ -76,8 +76,8 @@ System.register(["./Vec3f"], function(exports_1) {
                         return MathUtils.smoothstep2(f, min, max);
                     }
                 };
-                MathUtils.mix = function (x, y, a) {
-                    return x + (y - x) * a;
+                MathUtils.mix = function (v1, v2, a) {
+                    return v1 + (v2 - v1) * a;
                 };
                 return MathUtils;
             })();

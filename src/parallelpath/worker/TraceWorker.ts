@@ -5,6 +5,8 @@ import {Plane} from "../util/math/Plane";
 import {Sphere} from "../util/math/Sphere";
 import {Camera} from "../gfx/Camera";
 import {Material} from "../gfx/Material";
+import {Vec2f} from "../util/math/Vec2f";
+import {Mat4f} from "../util/math/Mat4f";
 
 export class TraceWorker {
 
@@ -12,6 +14,10 @@ export class TraceWorker {
     static INITED:string = "INITED";
     static TRACE:string = "TRACE";
     static TRACED:string = "TRACED";
+
+    time:number = 1;
+
+    static initRay:Vec3f;
 
     private width:number;
     private height:number;
@@ -24,14 +30,30 @@ export class TraceWorker {
     private tracer:Tracer;
 
     private command:any;
+    private eye:any;
+    private center:any;
+    private invMP:any;
+    private iterations:number;
     private propertyMemory:Uint8Array;
     private pixelMemory:Uint8ClampedArray;
     private samples:Uint8ClampedArray;
-    private samples_taken:number;
+    private samples_taken:number = 1;
     private window_width:number;
     private window_height:number;
+    private r1_scale:Vec3f;
+    private r2_scale:Vec3f;
+    private SSAA = 0;
 
     constructor() {
+
+        console.log("v2");
+
+        this.eye = new Vec3f();
+        this.center = new Vec3f();
+        this.invMP = new Mat4f();
+        this.r1_scale = new Vec3f(12.9898, 78.233, 151.7182);
+        this.r2_scale = new Vec3f(63.7264, 10.873, 623.6736);
+
         var self = this;
         addEventListener('message', (e:any) => {
 
@@ -74,8 +96,13 @@ export class TraceWorker {
             } else if (self.command == TraceWorker.TRACE) {
                 self.command = null;
                 self.ar = e.data.ar;
-                self.tracer.camera.rot.setFromQuaternion(e.data.rot);
-                self.tracer.camera.pos.setVec(e.data.pos);
+                self.eye.setVec(e.data.eye);
+                self.center.setVec(e.data.center);
+                self.invMP.m = e.data.invMP;
+                self.iterations = e.data.iterations;
+                if (self.iterations == 0) {
+                    self.clear();
+                }
                 self.run();
                 postMessage(TraceWorker.TRACED);
             }
@@ -92,6 +119,13 @@ export class TraceWorker {
         this.samples = new Uint8ClampedArray(width * height * 3);
         this.samples_taken = 1;
         //this.tracer = tracer;
+        console.log("inited");
+    }
+
+    clear():void {
+        this.samples = new Uint8ClampedArray(this.width * this.height * 3);
+        this.samples_taken = 1;
+        console.log("cleared");
     }
 
     run():void {
@@ -101,60 +135,86 @@ export class TraceWorker {
 
         if (this.tracer != null) {
 
-            var ray_primary:Ray = new Ray();
+            var ray_primary:Ray;
+            var depth = Config.ss_amount;
 
+            var w = this.width;
+            var h = this.height;
+            var i = 0;
+            var color:Vec3f;
+
+            // randomly jitter pixels so there is no aliasing
             for (var y:number = this.yoffset; y < this.yoffset + this.height; y++) {
 
                 for (var x:number = this.xoffset; x < this.xoffset + this.width; x++) {
 
-                    var _x = x - this.xoffset;
-                    var _y = y - this.yoffset;
-                    var index:number = ((_y * (this.width * 3)) + (_x * 3));
-                    var color:Vec3f;
+                    var InitRay = new Vec3f();
+                    /*var percent_x:number = x * 0.5 + 0.5;
+                     var percent_y:number = y * 0.5 + 0.5;
+                     var ray00:Vec3f = (this.invMP.multiplyVec4([-1.0, -1.0, 0.0, 1.0]).divide(this.invMP.multiplyVec4([-1.0, -1.0, 0.0, 1.0]).w)).xyz.sub(this.eye);
+                     var ray01:Vec3f = (this.invMP.multiplyVec4([-1.0, 1.0, 0.0, 1.0]).divide(this.invMP.multiplyVec4([-1.0, -1.0, 0.0, 1.0]).w)).xyz.sub(this.eye);
+                     var ray10:Vec3f = (this.invMP.multiplyVec4([1.0, -1.0, 0.0, 1.0]).divide(this.invMP.multiplyVec4([-1.0, -1.0, 0.0, 1.0]).w)).xyz.sub(this.eye);
+                     var ray11:Vec3f = (this.invMP.multiplyVec4([1.0, 1.0, 0.0, 1.0]).divide(this.invMP.multiplyVec4([-1.0, -1.0, 0.0, 1.0]).w)).xyz.sub(this.eye);
 
-                    if (Config.ss_enabled)
-                    {
-                        var sample:Vec3f = Shader.COLOR_NULL;
+                     InitRay.x = MathUtils.mix(MathUtils.mix(ray00.x, ray01.x, percent_y), MathUtils.mix(ray10.x, ray11.x, percent_y), percent_x);
+                     InitRay.y = MathUtils.mix(MathUtils.mix(ray00.y, ray01.y, percent_y), MathUtils.mix(ray10.y, ray11.y, percent_y), percent_x);
+                     InitRay.z = MathUtils.mix(MathUtils.mix(ray00.z, ray01.z, percent_y), MathUtils.mix(ray10.z, ray11.z, percent_y), percent_x);*/
+                    var r:Ray = Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
+                    InitRay = r.dir;
+                    TraceWorker.initRay = InitRay;
 
-                        // Sample the pixels n times
-                        for (var i:number = 0; i < Config.ss_amount; i++)
-                        {
-                            // Calculate the randomized primary ray
-                            var ray:Ray = Ray.calcSupersampledCameraRay(
-                                this.tracer.camera,
-                                this.window_width,
-                                this.window_height,
-                                this.ar, x, y, Config.ss_jitter
-                            );
+                    /*var r:Ray = new Ray();
+                     r.origin = this.eye;
+                     r.dir = InitRay.normalize();*/
 
-                            // Do the path tracing
-                            sample = sample.add(TraceWorker.pathTrace(ray, this.tracer.scene, 0, 1.0));
-                        }
+                    //screenz = 0.0
+                    var t:number = (0.0 - this.eye.z) / r.dir.z;
+                    var InitPixel:Vec3f = r.origin.add(r.dir.scaleNumber(t));
 
-                        // Get the average color of the sample
-                        color = sample.divideNumber(Config.ss_amount);
-
-                        // Add the averaged sample to the samples
-                        color.x = this.samples[index] = this.samples[index] + color.x;
-                        color.y = this.samples[index + 1] = this.samples[index + 1] + color.y;
-                        color.z = this.samples[index + 2] = this.samples[index + 2] + color.z;
-
-                    } else {
-                        ray_primary = Ray.calcCameraRay(this.tracer.camera, this.window_width, this.window_height, this.ar, x, y);
-
-                        // Do the path tracing
-
-                        color = TraceWorker.pathTrace(ray_primary, this.tracer.scene, 0, 1.0);
-
-                        color.x = this.samples[index] = this.samples[index] + color.x;
-                        color.y = this.samples[index + 1] = this.samples[index] + color.y;
-                        color.z = this.samples[index + 2] = this.samples[index] + color.z;
+                    var r1:number = Math.sin(TraceWorker.getrandom(r.dir.scale(this.r1_scale), this.time));
+                    var r2:number = Math.cos(TraceWorker.getrandom(r.dir.scale(this.r2_scale), this.time + 1.0));
+                    if (this.SSAA > 0) {
+                        //jitter
+                        var u:number = r1 / 2.0 / this.width;
+                        var v:number = r2 / 2.0 / this.height;
+                        InitPixel.x += u;
+                        InitPixel.y += v;
+                        InitPixel.z += 0;
+                        r.dir = InitPixel.sub(this.eye).normalize();
                     }
 
-                    var screen_index:number = ((y * (this.window_width * 3)) + (x * 3));
 
-                    this.drawPixelVec3fAveraged(screen_index, color, this.samples_taken);
-                    //this.drawPixelVec3f(x, y, TraceWorker.traceColor(ray_primary, this.tracer.scene, 0));
+                    r.ior = 1.0;
+
+                    var finalCol:Vec3f = new Vec3f(0.0);
+                    this.pathTrace(r, 1, finalCol);
+
+                    var _x = x - this.xoffset;
+                    var _y = y - this.yoffset;
+                    var index:number = ((_y * (w * 3)) + (_x * 3));
+
+                    this.samples[index] += finalCol.x;
+                    this.samples[index + 1] += finalCol.y;
+                    this.samples[index + 2] += finalCol.z;
+
+
+                    /*if (TraceWorker.interval % 50000 == 0) {
+                        console.log(this.samples[index],this.samples[index+1],this.samples[index+2]);
+                    }
+                    TraceWorker.interval++;*/
+
+                    finalCol.x = MathUtils.mix(finalCol.x / 5.0, this.samples[index], this.iterations / (1.0 + this.iterations));
+                    finalCol.y = MathUtils.mix(finalCol.y / 5.0, this.samples[index + 1], this.iterations / (1.0 + this.iterations));
+                    finalCol.z = MathUtils.mix(finalCol.z / 5.0, this.samples[index + 2], this.iterations / (1.0 + this.iterations));
+
+                    finalCol.x = this.samples[index] / this.iterations;
+                    finalCol.y = this.samples[index + 1] / this.iterations;
+                    finalCol.z = this.samples[index + 2] / this.iterations;
+
+                    var screen_index:number = ((y * (this.window_width * 3)) + (x * 3));
+                    this.drawPixelVec3f(screen_index, finalCol);
+
+                    this.samples_taken++;
 
                     if (Config.debug && x == this.xoffset || Config.debug && y == this.yoffset) {
                         this.drawPixelInt(screen_index, 0xFFFF00F);
@@ -163,10 +223,11 @@ export class TraceWorker {
             }
         }
 
-        //console.timeEnd("Traced");
-        this.samples_taken++;
+        this.iterations++;
+        this.time++;
         this.finished = true;
     }
+
     drawPixelVec3fAveraged(index:number, color:Vec3f, factor:number):void {
 
         var average:Vec3f = <Vec3f>MathUtils.clamp(color.divideNumber(factor), 0.0, 1.0);
@@ -180,20 +241,15 @@ export class TraceWorker {
         this.pixelMemory[index + 2] = blue;
     }
 
-    drawPixelVec3f(x:number, y:number, color:Vec3f):void {
+    drawPixelVec3f(index:number, color:Vec3f):void {
 
-        color = <Vec3f>MathUtils.smoothstep(MathUtils.clamp(color, 0.0, 1.0), 0.0, 1.0);
-
-        var index:number = ((y * (this.window_width * 3)) + (x * 3));
         var red:number = (color.x * 255.0);
         var green:number = (color.y * 255.0);
         var blue:number = (color.z * 255.0);
-        //var hex_value:number = ((red << 16) | (green << 8) | blue);
 
         this.pixelMemory[index] = red;
         this.pixelMemory[index + 1] = green;
         this.pixelMemory[index + 2] = blue;
-        this.pixelMemory[index + 3] = 255;
     }
 
     drawPixelInt(index:number, color:number) {
@@ -207,125 +263,265 @@ export class TraceWorker {
         this.pixelMemory[index + 2] = blue;
     }
 
-    static pathTrace(ray:Ray, scene:Scene, n:number, weight:number):Vec3f {
-        // Break out from the method if max recursion depth is hit
-        if (n > Config.recursion_max) {
-            return Shader.COLOR_WHITE;
-        }
+    static interval:number = 0;
+
+    pathTrace(ray:Ray, rayDepth:number, color:Vec3f):Vec3f {
+
+        var colorMask:Vec3f = new Vec3f(1);
+        var incidentIOR:number = 1.0;
+        var transmittedIOR:number = 1.0;
+        var internalReflection:boolean = false;
+        var reflective:boolean = false;
+        var refractive:boolean = false;
+        var shift:number = 0.01;
 
         // Initialize the required intersection data
         var xInit:Intersection = null;
         var xFinal:Intersection = null;
         var xObject:TracerObject = null;
         var tInit:number = Number.MAX_VALUE;
+        var depth = 5;
 
-        // Find the nearest intersection point
-        scene.objects.forEach(function (obj:TracerObject) {
-            obj.primitives.forEach(function (primitive:Primitive) {
-                xInit = primitive.intersect(ray);
-                if (xInit != null && xInit.getT() < tInit) {
-                    xFinal = xInit;
-                    tInit = xFinal.getT();
-                    xObject = obj;
-                }
+        for (var i = 0; i < depth; i++) {
+            xFinal = null;
+            var seed = this.time + i;
+            // Find the nearest intersection point
+            this.tracer.scene.objects.forEach(function (obj:TracerObject) {
+                obj.primitives.forEach(function (primitive:Primitive) {
+                    xInit = primitive.intersect(ray);
+                    if (xInit != null && xInit.getT() < tInit) {
+                        xFinal = xInit;
+                        tInit = xFinal.getT();
+                        xObject = obj;
+                    }
+                });
             });
-        });
 
-        // Return a blank color if the ray didn't hit anything
-        if (xFinal == null)
-            return Shader.COLOR_RED;
-
-        // If the ray hit a purely emissive surface, return the emittance
-        if (xObject.material.emittance.length() > 0.0 && xFinal.getT() > Config.epsilon) {
-            return xObject.material.emittance.scaleNumber(weight);
-        }
-
-        // Store the required data into temp objects
-        var M:Material = xObject.material;
-        var P:Vec3f = xFinal.pos;
-        var N:Vec3f = xFinal.norm;
-        var RO:Vec3f = ray.pos;
-        var RD:Vec3f = ray.dir;
-
-        // Initialize the total color vector
-        var color:Vec3f = new Vec3f();
-
-        // Calculate the russian roulette probabilities
-        var Kd:number = M.reflectance.length();
-        var Ks:number = M.reflectivity;
-        var Pp:number = Kd / (Kd + Ks);
-        var Pr:number = Math.random();
-
-        // Refractive BRDF
-        if (M.refractivity > 0.0)
-        {
-            weight *= M.refractivity;
-
-            // Initialize some values
-            var NdotI:number = RD.dot(N), IOR, n1, n2, fresnel;
-            var refractedRay:Ray;
-
-            // Are we going into a medium or getting out from it?
-            if (NdotI > 0.0)
-            {
-                n1 = ray.ior;
-                n2 = M.ior;
-                N = N.negate();
-            }
-            else
-            {
-                n1 = M.ior;
-                n2 = ray.ior;
-                NdotI = -NdotI;
+            // Return a blank color if the ray didn't hit anything
+            if (xFinal == null) {
+                color.setVec(Shader.COLOR_NULL);
+                return color;
             }
 
-            // Calculate the final index of refraction at the incident
-            IOR = n2 / n1;
+            if (xObject.material.emittance.length() > 0.0) {
+                color.setVec(xObject.material.emittance);
+                return color;
+            }
 
-            // Calculate the cosine term
-            var cos_t = IOR * IOR * (1.0 - NdotI * NdotI);
 
-            cos_t = Math.sqrt(1.0 - cos_t);
-            fresnel = (Math.sqrt((n1 * NdotI - n2 * cos_t) / (n1 * NdotI + n2 * cos_t)) + Math.sqrt((n2 * NdotI - n1 * cos_t) / (n2 * NdotI + n1 * cos_t))) * 0.5;
+            // Store the required data into temp objects
+            var material:Material = xObject.material;
+            var P:Vec3f = xFinal.pos;
+            var N:Vec3f = xFinal.norm;
+            var RO:Vec3f = ray.origin;
+            var RD:Vec3f = ray.dir;
 
-            // A little bit of russian roulette to decide if the ray reflects or refracts, depends on the fresnel term that's in the range of 0..1
-            if (Math.random() <= fresnel) {
-                refractedRay = new Ray(P, RD.reflect(N).normalize());
+            // Calculate the russian roulette probabilities
+            var Kd:number = material.reflectance.length();
+            var Ks:number = material.reflectivity;
+            var Pp:number = Kd / (Kd + Ks);
+            var Pr:number = Math.random();
+
+            var intersect:Intersection = xFinal;
+
+            //no light objects
+            if (material.refractivity == 0 && material.reflectivity == 0) {
+
+                colorMask = colorMask.scale(material.color_diffuse);
+                color.setVec(colorMask);
+
+                var randomnum:number = TraceWorker.rand(intersect.pos.xy);
+                //ray.dir = ray.dir.randomHemisphere();
+                ray.dir = TraceWorker.calculateRandomDirectionInHemisphere(seed + randomnum, intersect.norm).normalize();
+                ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+
             } else {
-                refractedRay = new Ray(P, RD.refract(N, IOR, NdotI, cos_t).normalize());
-                //refractedRay.setCurrentMediumIOR(IOR);
-            }
 
-            color = color.add(TraceWorker.pathTrace(refractedRay, scene, n + 1, weight));
+                var isInsideOut:boolean = ray.dir.dot(intersect.norm) > 0.0; //out:> 0.0 true,in :<=0.0  false
+
+                if (material.refractivity > 0.0) {
+
+                    var random:Vec3f = new Vec3f(
+                        TraceWorker.rand(intersect.pos.xy),
+                        TraceWorker.rand(intersect.pos.xz),
+                        TraceWorker.rand(intersect.pos.yz)
+                    );
+                    var oldIOR = ray.ior;
+                    var newIOR = material.ior;
+                    var fresnel:any;
+
+                    var reflect_range:number = -1.0;
+                    var IOR12:number = oldIOR / newIOR;
+                    // Calculate the cosine term
+                    var NdotI:number = ray.dir.dot(xFinal.norm);
+                    var cos_t = IOR12 * IOR12 * (1.0 - NdotI * NdotI);
+
+                    var reflectR:Vec3f = ray.dir.reflect(intersect.norm);
+                    var refractR:Vec3f = ray.dir.refract(intersect.norm, IOR12, NdotI, cos_t);
+                    fresnel = TraceWorker.calculateFresnel(intersect.norm, ray.dir, oldIOR, newIOR);
+
+                    reflect_range = fresnel.reflectionCoefficient;
+
+                    var randomnum:number = TraceWorker.getrandom(random, seed);
+                    if (randomnum < reflect_range) {
+                        ray.dir = reflectR;
+                        ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+
+                        if (material.subsurfaceScatter > 0) {
+                            var _random:number = TraceWorker.rand(intersect.pos.xy);
+                            var scatterColor:Vec3f = TraceWorker.subScatterFS(intersect, material.color_diffuse, _random);
+                            colorMask = colorMask.scale(scatterColor);
+                        }
+                    }
+                    else {
+                        ray.dir = refractR;
+                        ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+                    }
+
+                    if (!isInsideOut) {  //from objects
+                        ray.ior = newIOR;
+                    } else {  //from air
+                        ray.ior = 1.0;
+                    }
+
+                    colorMask = colorMask.scale(material.color_diffuse);
+                    color.setVec(colorMask);
+
+                    /*if (TraceWorker.interval % 50000 == 0) {
+                     console.log(color);
+                     }*/
+
+                }
+                else if (material.reflectivity > 0.0) {
+
+                    if (material.subsurfaceScatter > 0) {
+                        var _random:number = TraceWorker.rand(intersect.pos.xy);
+                        colorMask = colorMask.scale(TraceWorker.subScatterFS(intersect, material.color_diffuse, _random));
+                    }
+                    colorMask = colorMask.scale(material.color_diffuse);
+                    color.setVec(colorMask);
+                    ray.ior = 1.0;
+                    ray.dir = ray.dir.reflect(intersect.norm);
+                    ray.origin = intersect.pos.add(ray.dir.scaleNumber(shift));
+                }else{
+
+                    /*color.setVec(Shader.COLOR_NULL);
+                    return color;*/
+                }
+            }
+        }
+    }
+
+    static rand(co:Vec2f):number {
+        var a:number = 12.9898;
+        var b:number = 78.233;
+        var c:number = 43758.5453;
+        var dt:number = MathUtils.dotVec2(co, new Vec2f(a, b));
+        var sn:number = MathUtils.mod(dt, 3.14);
+        return MathUtils.fract(Math.sin(sn) * c);
+    }
+
+    static getrandom(noise:Vec3f, seed:number):number {
+        return MathUtils.fract(Math.sin(MathUtils.dotVec3(TraceWorker.initRay.addNumber(seed), noise)) * 43758.5453 + seed);
+    }
+
+    static calculateRandomDirectionInHemisphere(seed:number, normal:Vec3f):Vec3f {
+        var u:number = TraceWorker.getrandom(new Vec3f(12.9898, 78.233, 151.7182), seed);
+        var v:number = TraceWorker.getrandom(new Vec3f(63.7264, 10.873, 623.6736), seed);
+
+        var up:number = Math.sqrt(u);
+        var over:number = Math.sqrt(1.0 - up * up);
+        var around:number = v * 3.141592 * 2.0;
+
+        var directionNotNormal:Vec3f;
+        if (Math.abs(normal.x) < 0.577350269189) {
+            directionNotNormal = new Vec3f(1, 0, 0);
+        } else if (Math.abs(normal.y) < 0.577350269189) {
+            directionNotNormal = new Vec3f(0, 1, 0);
+        } else {
+            directionNotNormal = new Vec3f(0, 0, 1);
         }
 
-        if (Pr < Pp && Kd + Ks != 0.0)
-        // Choose diffuse BRDF with probability Pp
-        {
-            // Diffuse BRDF
-            if (M.reflectance.length() > 0.0)
-            {
-                var randomRay:Ray = new Ray(P, N.randomHemisphere());
-                var NdotRD:number = Math.abs(N.dot(randomRay.dir));
-                var BRDF:Vec3f = M.reflectance.scaleNumber((1.0 / Math.PI) * 2.0 * NdotRD);
-                var REFLECTED:Vec3f = TraceWorker.pathTrace(randomRay, scene, n + 1, weight);
-                color = color.add(BRDF.scale(REFLECTED));
-                //color = BRDF.scale(REFLECTED);
-            }
-        }
-        else
-        // Choose reflective BRDF with probability 1 - Pp
-        {
-            // Reflective BRDF
-            if (M.reflectivity > 0.0)
-            {
-                weight *= M.reflectivity;
-                var reflectedRay:Ray = new Ray(P, RD.reflect(N).normalize());
-                color = color.add(TraceWorker.pathTrace(reflectedRay, scene, n + 1, weight));
-            }
+        var perpendicularDirection1:Vec3f = normal.cross(directionNotNormal).normalize();
+        var perpendicularDirection2:Vec3f = normal.cross(perpendicularDirection1).normalize();
+
+        return normal.scaleNumber(up).add(perpendicularDirection1.scaleNumber(Math.cos(around) * over)).add(perpendicularDirection2.scaleNumber(Math.sin(around) * over));
+    }
+
+    static calculateFresnel(normal:Vec3f, incident:Vec3f, incidentIOR:number, transmittedIOR:number):any {
+        var fresnel = {
+            reflectionCoefficient: 0,
+            transmissionCoefficient: 0
+        };
+        incident = incident.normalize();
+        normal = normal.normalize();
+        var cosThetaI:number = Math.abs(normal.dot(incident));
+        var sinIncidence:number = Math.sqrt(1.0 - Math.pow(cosThetaI, 2.0));
+        var cosThetaT:number = Math.sqrt(1.0 - Math.pow(((incidentIOR / transmittedIOR) * sinIncidence), 2.0));
+
+        if (cosThetaT <= 0.0) {
+            fresnel.reflectionCoefficient = 1.0;
+            fresnel.transmissionCoefficient = 0.0;
+            return fresnel;
+        } else {
+
+            var RsP:number = Math.pow((incidentIOR * cosThetaI - transmittedIOR * cosThetaT) / (incidentIOR * cosThetaI + transmittedIOR * cosThetaT), 2.0);
+            var RpP:number = Math.pow((incidentIOR * cosThetaT - transmittedIOR * cosThetaI) / (incidentIOR * cosThetaT + transmittedIOR * cosThetaI), 2.0);
+            fresnel.reflectionCoefficient = (RsP + RpP) / 2.0;
+            fresnel.transmissionCoefficient = 1.0 - fresnel.reflectionCoefficient;
+            return fresnel;
         }
 
-        return color;
+    }
+
+    static subScatterFS(intersect:Intersection, color:Vec3f, seed:Number):Vec3f {
+        var RimScalar:number = 1.0;
+        var MaterialThickness:number = 0.5;
+        var ExtinctionCoefficient:Vec3f = new Vec3f(1.0, 1.0, 1.0);
+        var SpecColor:Vec3f = new Vec3f(1.0, 1.0, 1.0);
+        var lightPoint:Vec3f = new Vec3f(0.0, 5.0, 0.0);
+
+        var attenuation:number = 10.0 * (1.0 / lightPoint.distance(intersect.pos));
+        var eVec:Vec3f = intersect.pos.normalize();
+        var lVec:Vec3f = lightPoint.sub(intersect.pos).normalize();
+        var wNorm:Vec3f = intersect.norm.normalize();
+
+        var dotLN:Vec3f = new Vec3f(TraceWorker.halfLambert(lVec, wNorm) * attenuation);
+        dotLN = dotLN.scale(color);
+
+        var indirectLightComponent:Vec3f = new Vec3f(MaterialThickness * Math.max(0.0, lVec.dot(wNorm.negate())));
+        indirectLightComponent.addNumber(MaterialThickness * TraceWorker.halfLambert(eVec.negate(), lVec));
+        indirectLightComponent.scaleNumber(attenuation);
+        indirectLightComponent.x *= ExtinctionCoefficient.x;
+        indirectLightComponent.y *= ExtinctionCoefficient.y;
+        indirectLightComponent.z *= ExtinctionCoefficient.z;
+
+        var rim = new Vec3f(1.0 - Math.max(0.0, wNorm.dot(eVec)));
+        rim = rim.scale(rim);
+        rim = SpecColor.scale(rim.scaleNumber(Math.max(0.0, wNorm.dot(lVec))));
+
+        var finalCol:Vec3f = dotLN.add(indirectLightComponent);
+        finalCol.add(rim.scaleNumber(RimScalar * attenuation));
+        var SpecularPower = 15.0;
+        finalCol = finalCol.add(
+            SpecColor.scaleNumber(TraceWorker.blinnPhongSpecular(wNorm, lVec, SpecularPower) * attenuation * 0.1)
+        );
+        //finalCol = finalCol.scale(new Vec3f(1.0));
+
+        return finalCol;
+    }
+
+    static blinnPhongSpecular(normalVec:Vec3f, lightVec:Vec3f, specPower:number):number {
+        var halfAngle:Vec3f = normalVec.add(lightVec).normalize();
+        return Math.pow(
+            MathUtils.clamp2(0.0, 1.0, normalVec.dot(halfAngle)),
+            specPower
+        );
+    }
+
+    static halfLambert(vect1:Vec3f, vect2:Vec3f):number {
+        var product:number = vect1.dot(vect2);
+        return product * 0.5 + 0.5;
     }
 
     getWidth():number {

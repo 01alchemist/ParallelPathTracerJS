@@ -16,7 +16,7 @@ export class Transform {
         this.scale = scale || new Vec3f(1.0);
     }
 
-    getTransformation():Mat4f {
+    /*getTransformation():Mat4f {
         var translationMatrix:Mat4f = new Mat4f();
         var rotationMatrix:Mat4f = new Mat4f();
         var scaleMatrix:Mat4f = new Mat4f();
@@ -26,7 +26,7 @@ export class Transform {
         scaleMatrix.initScale(this.scale.x, this.scale.y, this.scale.z);
 
         return Mat4f.mulMatrix(translationMatrix, Mat4f.mulMatrix(rotationMatrix, scaleMatrix));
-    }
+    }*/
 
     getPos():Vec3f {
         return this.position;

@@ -16,8 +16,9 @@ System.register(["./InputListener", "./util/Logger", "./util/TimeUtils"], functi
             Engine = (function () {
                 function Engine(display, tracer) {
                     this.display = display;
-                    this.ilistener = new InputListener_1.InputListener();
                     this.tracer = tracer;
+                    this.ilistener = new InputListener_1.InputListener();
+                    this.ilistener.register(display, tracer);
                     this.log = new Logger_1.Logger('Engine');
                     this.running = false;
                 }
@@ -44,8 +45,7 @@ System.register(["./InputListener", "./util/Logger", "./util/TimeUtils"], functi
                         self.display.setTitle("Workers: " + self.tracer.numWorkers +
                             " DeltaTime: " + TimeUtils_1.TimeUtils.getDelta() +
                             " FPS: " + TimeUtils_1.TimeUtils.getFPS() + "/s" +
-                            " Eye: " + self.tracer.getCamera().getRot().toString() +
-                            " Eye_length: " + self.tracer.getCamera().getRot().length());
+                            " Iterations: " + self.tracer.iterations);
                         self.update(TimeUtils_1.TimeUtils.delta);
                         self.render();
                         if (self.running) {
@@ -58,8 +58,10 @@ System.register(["./InputListener", "./util/Logger", "./util/TimeUtils"], functi
                     this.tracer.update(dt);
                 };
                 Engine.prototype.render = function () {
-                    this.tracer.render();
-                    this.display.render(this.tracer.pixels, this.tracer.iteration);
+                    if (!this.display.paused) {
+                        this.tracer.render();
+                        this.display.render(this.tracer.pixels, this.tracer.iterations);
+                    }
                 };
                 return Engine;
             })();
